@@ -29,10 +29,9 @@ entryPoints:
     address: ":8080"
 
 providers:
-  docker:
-    endpoint: "unix:///var/run/docker.sock"
-    exposedByDefault: false
-    network: smartlogix_web
+  # Provider File: routers definidos en infra/traefik/dynamic/
+  # Se prefiere sobre el provider Docker porque evita problemas
+  # de negociacion de API version con Docker Desktop Windows
   file:
     directory: /etc/traefik/dynamic
     watch: true

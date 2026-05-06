@@ -1,0 +1,51 @@
+# Routers definidos en archivo (provider File)
+# Evita la dependencia del provider Docker, que tiene problemas
+# en Docker Desktop Windows con la negociacion de API version
+
+http:
+  routers:
+    frontend:
+      rule: "Host(`app.smartlogix.localhost`)"
+      service: frontend
+      entryPoints:
+        - web
+      middlewares:
+        - secure-headers
+
+    api:
+      rule: "Host(`api.smartlogix.localhost`)"
+      service: api
+      entryPoints:
+        - web
+      middlewares:
+        - secure-headers
+        - rate-limit
+        - cors-api
+
+    bff:
+      rule: "Host(`bff.smartlogix.localhost`)"
+      service: bff
+      entryPoints:
+        - web
+
+    dashboard:
+      rule: "Host(`traefik.smartlogix.localhost`)"
+      service: api@internal
+      entryPoints:
+        - web
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://apigateway:8080"
+
+    bff:
+      loadBalancer:
+        servers:
+          - url: "http://bff:3000"

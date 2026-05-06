@@ -25,18 +25,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+      # Dashboard accesible via http://traefik.smartlogix.localhost
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./infra/traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - web
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.smartlogix.localhost`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=web"
 
   # ===========================================================
   # Capa de presentacion - Frontend React 19
