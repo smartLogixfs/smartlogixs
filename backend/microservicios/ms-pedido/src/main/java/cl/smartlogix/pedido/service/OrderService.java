@@ -1,13 +1,17 @@
 package cl.smartlogix.pedido.service;
 
+import cl.smartlogix.pedido.dto.ActualizarEstadoRequest;
+import cl.smartlogix.pedido.dto.CrearPedidoRequest;
+import cl.smartlogix.pedido.dto.OrderDto;
+import cl.smartlogix.pedido.model.EstadoPedido;
+
 import java.util.List;
 
-import cl.smartlogix.pedido.dto.OrderDto;
-
 public interface OrderService {
-    OrderDto create(OrderDto dto);
-    OrderDto getById(Long id);
-    List<OrderDto> getAll();
-    OrderDto update(Long id, OrderDto dto);
-    void delete(Long id);
+    OrderDto crear(CrearPedidoRequest req);
+    OrderDto findById(Long id);
+    OrderDto findByCodigo(String codigo);
+    List<OrderDto> findAll();
+    List<OrderDto> findByEstado(EstadoPedido estado);
+    OrderDto cambiarEstado(Long id, ActualizarEstadoRequest req);
 }
