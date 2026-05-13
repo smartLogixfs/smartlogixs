@@ -13,5 +13,6 @@ public interface OrderService {
     OrderDto findByCodigo(String codigo);
     List<OrderDto> findAll();
     List<OrderDto> findByEstado(EstadoPedido estado);
+    List<OrderDto> findByCliente(String idCliente);
     OrderDto cambiarEstado(Long id, ActualizarEstadoRequest req);
 }

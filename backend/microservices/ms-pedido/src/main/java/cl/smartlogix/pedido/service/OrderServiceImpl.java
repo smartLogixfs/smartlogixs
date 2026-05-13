@@ -106,6 +106,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<OrderDto> findByCliente(String idCliente) {
+        return repository.findByIdCliente(idCliente).stream().map(OrderDto::from).toList();
+    }
+
+    @Override
     public OrderDto cambiarEstado(Long id, ActualizarEstadoRequest req) {
         Pedido pedido = buscar(id);
         EstadoPedido actual = pedido.getEstado();
