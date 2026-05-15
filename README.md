@@ -84,7 +84,13 @@ Verificar:
 docker compose ps
 ```
 
-Esperado: 10 contenedores arriba (traefik, frontend, apigateway, bff, 3× ms, 3× db).
+Esperado: 10 contenedores arriba (traefik, frontend, apigateway, bff, 3× ms, 3× db), **todos en estado `(healthy)`** salvo traefik (sin healthcheck propio).
+
+El arranque respeta la cadena de `depends_on: service_healthy`:
+```
+db-{inv,ped,env} → ms-{inv,ped,env} → bff → apigateway
+```
+KrakenD no se levanta hasta que el BFF responde `/health`, y los MS no aceptan tráfico hasta que su DB responde `pg_isready` y Spring Boot expone `/actuator/health=UP`.
 
 ### 4. Smoke tests
 
@@ -129,6 +135,7 @@ Cada MS:
 - **Flyway** con `V1__init_schema.sql` por servicio
 - **Bean Validation** en DTOs, `@RestControllerAdvice` con `GlobalExceptionHandler` global
 - **Spring Data JPA repositories**, **service layer** transaccional
+- **Spring Boot Actuator** expone `/actuator/health` (probes liveness/readiness, sin detalles a clientes anónimos) — usado por el `HEALTHCHECK` del Dockerfile y por el `depends_on: service_healthy` del compose
 - Endpoints REST documentados en el README de cada uno
 
 Servicios:

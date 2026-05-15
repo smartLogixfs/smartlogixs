@@ -121,6 +121,20 @@ src/main/resources/
 └── db/migration/V1__init_schema.sql
 ```
 
+## Healthcheck
+
+Expone `/actuator/health` (Spring Boot Actuator):
+
+```bash
+docker compose exec ms-envio curl -sS http://localhost:8080/actuator/health
+# {"groups":["liveness","readiness"],"status":"UP"}
+```
+
+- `management.endpoint.health.show-details=never` — no filtra info interna a clientes anónimos
+- `probes.enabled=true` — habilita `/actuator/health/liveness` y `/readiness` (útil para K8s a futuro)
+- El `HEALTHCHECK` del Dockerfile hace `curl ... | grep '"status":"UP"'` cada 30 s
+- El `docker-compose.yml` usa `depends_on: condition: service_healthy` para que BFF solo arranque cuando este MS reporte `UP`
+
 ## Patrones aplicados
 
 - **Repository / Service Layer / DTO**
