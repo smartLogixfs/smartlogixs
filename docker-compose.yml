@@ -61,7 +61,8 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      - bff
+      bff:
+        condition: service_healthy
     networks:
       - web
       - internal
@@ -87,9 +88,12 @@ services:
       MS_PEDIDO_URL: http://ms-pedido:8080
       MS_ENVIO_URL: http://ms-envio:8080
     depends_on:
-      - ms-inventario
-      - ms-pedido
-      - ms-envio
+      ms-inventario:
+        condition: service_healthy
+      ms-pedido:
+        condition: service_healthy
+      ms-envio:
+        condition: service_healthy
     networks:
       - internal
       - web
@@ -114,7 +118,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_INVENTARIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_INVENTARIO_PASSWORD}
     depends_on:
-      - db-inventario
+      db-inventario:
+        condition: service_healthy
     networks:
       - internal
 
@@ -130,7 +135,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PEDIDO_PASSWORD}
       MS_INVENTARIO_URL: http://ms-inventario:8080
     depends_on:
-      - db-pedido
+      db-pedido:
+        condition: service_healthy
     networks:
       - internal
 
@@ -145,7 +151,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_ENVIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_ENVIO_PASSWORD}
     depends_on:
-      - db-envio
+      db-envio:
+        condition: service_healthy
     networks:
       - internal
 

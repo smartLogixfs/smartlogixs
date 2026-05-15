@@ -227,5 +227,5 @@ Para satisfacer literalmente el requisito de "arquetipo Maven", se puede:
 1. **Activar JWT real**: configurar el JWT validator de KrakenD con secret/issuer real (Auth0 / Keycloak)
 2. **Activar HTTPS**: descomentar la sección `certificatesResolvers` en `traefik.yml`
 3. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite)
-4. **Healthchecks de MS**: agregar `spring-boot-starter-actuator` y descomentar HEALTHCHECK en los Dockerfiles
-5. **Tests unitarios** por servicio (cobertura, parte de la rúbrica EV2)
+4. ~~**Healthchecks de MS**~~ ✅ Actuator + `HEALTHCHECK` en los 3 MS; `depends_on` con `condition: service_healthy` para orden de arranque
+5. **Tests unitarios** por servicio (cobertura, parte de la rúbrica EV2) — parcial: 41-57% INSTRUCTION, falta cubrir controllers/exception handlers

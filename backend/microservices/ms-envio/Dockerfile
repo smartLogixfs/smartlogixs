@@ -9,9 +9,14 @@ RUN ./gradlew --no-daemon bootJar -x test
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-RUN groupadd -r app && useradd -r -g app app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -r app && useradd -r -g app app
 COPY --from=build /app/build/libs/*.jar app.jar
 USER app
 EXPOSE 8080
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+  CMD curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
 ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar /app/app.jar"]
