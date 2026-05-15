@@ -1,7 +1,12 @@
 plugins {
 	id 'java'
+	id 'jacoco'
 	id 'org.springframework.boot' version '4.0.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+jacoco {
+	toolVersion = '0.8.12'
 }
 
 group = 'cl.smartlogix'
@@ -11,6 +16,12 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
 	}
+}
+
+// Bytecode target Java 21 LTS para que JaCoCo (0.8.12) pueda analizarlo.
+// El JRE 25 ejecuta Java 21 bytecode sin problema (forward compatibility).
+tasks.withType(JavaCompile).configureEach {
+	options.release = 21
 }
 
 repositories {
@@ -35,4 +46,22 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestReport
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+	reports {
+		xml.required = true
+		html.required = true
+	}
+	// Excluir DTOs (records), entidades JPA, clases generadas por Lombok,
+	// y la clase main — no aportan lógica que probar.
+	classDirectories.setFrom(files(classDirectories.files.collect {
+		fileTree(dir: it, exclude: [
+			'**/dto/**',
+			'**/model/**',
+			'**/*Application.class',
+		])
+	}))
 }
