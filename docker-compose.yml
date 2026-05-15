@@ -55,7 +55,7 @@ services:
   # ===========================================================
   apigateway:
     build:
-      context: ./backend/microservicios/apigateway
+      context: ./backend/microservices/apigateway
     container_name: smartlogix-apigateway
     restart: unless-stopped
     environment:
@@ -105,7 +105,7 @@ services:
   # ===========================================================
   ms-inventario:
     build:
-      context: ./backend/microservicios/ms-inventario
+      context: ./backend/microservices/ms-inventario
     container_name: smartlogix-ms-inventario
     restart: unless-stopped
     environment:
@@ -120,7 +120,7 @@ services:
 
   ms-pedido:
     build:
-      context: ./backend/microservicios/ms-pedido
+      context: ./backend/microservices/ms-pedido
     container_name: smartlogix-ms-pedido
     restart: unless-stopped
     environment:
@@ -136,7 +136,7 @@ services:
 
   ms-envio:
     build:
-      context: ./backend/microservicios/ms-envio/envio
+      context: ./backend/microservices/ms-envio
     container_name: smartlogix-ms-envio
     restart: unless-stopped
     environment:
