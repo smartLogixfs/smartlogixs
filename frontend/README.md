@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # SmartLogix
 
 Monorepo del sistema SmartLogix — plataforma logística para PYMEs eCommerce.
@@ -157,22 +156,6 @@ docker compose config
 3. **Activar HTTPS**: descomentar la sección `certificatesResolvers` en `traefik.yml`
 4. **Circuit Breaker**: agregar Resilience4j al ms-pedido para proteger las llamadas a ms-inventario
 5. **Healthchecks de MS**: agregar `spring-boot-starter-actuator` y descomentar HEALTHCHECK en los Dockerfiles
-=======
-# SmartLogix Frontend
-
-Aplicación frontend del sistema SmartLogix.
-
-## Estructura
-
-Repositorio: [smartLogixfs/Front](https://github.com/smartLogixfs/Front)
-
-Forma parte del ecosistema SmartLogix:
-- [smartlogixs](https://github.com/smartLogixfs/smartlogixs) — repo paraguas
-- [Docs](https://github.com/smartLogixfs/Docs) — documentación
-- [BFF](https://github.com/smartLogixfs/BFF) — Backend For Frontend
-- [MS](https://github.com/smartLogixfs/MS) — microservicios
-
-## Setup
-
-_Pendiente — agregar instrucciones de instalación y ejecución._
->>>>>>> abb64e1 (Frontend setup V.3)
+- **SPA** servida estáticamente (Nginx) en producción, **HMR** en desarrollo
+- **BFF-first**: el frontend solo conoce el BFF, no los MS
+- Build **multi-stage** en Docker para imagen final mínima
