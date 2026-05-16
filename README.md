@@ -1,62 +1,386 @@
 # SmartLogix
 
-Monorepo del sistema SmartLogix — plataforma logística para PYMEs eCommerce.
+> Plataforma logística para PYMEs eCommerce. Monorepo con arquitectura de microservicios, Backend For Frontend, API Gateway, Ingress y bases de datos aisladas por servicio.
 
-Arquitectura de microservicios con **Traefik** como Ingress, **KrakenD** como API Gateway, **BFF** en Node.js y **microservicios Spring Boot** con **DB-per-Service**.
+**Asignatura**: DSY1106 Desarrollo Fullstack III · Evaluación Parcial N°2
 
-## Estructura
+### READMEs por componente
 
+| Componente | README |
+|---|---|
+| Frontend (React 19 + TS) | [`frontend/README.md`](frontend/README.md) |
+| BFF (Node.js 20 + Express) | [`backend/bff/README.md`](backend/bff/README.md) |
+| API Gateway (KrakenD) | [`backend/microservices/apigateway/README.md`](backend/microservices/apigateway/README.md) |
+| ms-pedido | [`backend/microservices/ms-pedido/README.md`](backend/microservices/ms-pedido/README.md) |
+| ms-inventario | [`backend/microservices/ms-inventario/README.md`](backend/microservices/ms-inventario/README.md) |
+| ms-envio | [`backend/microservices/ms-envio/README.md`](backend/microservices/ms-envio/README.md) |
+
+---
+
+## Tabla de contenidos
+
+1. [Resumen ejecutivo](#1-resumen-ejecutivo)
+2. [Arquitectura](#2-arquitectura)
+3. [Componentes](#3-componentes)
+4. [Flujos clave](#4-flujos-clave)
+5. [Modelo de datos](#5-modelo-de-datos)
+6. [Patrones aplicados](#6-patrones-aplicados)
+7. [Stack tecnológico](#7-stack-tecnológico)
+8. [Levantar el stack](#8-levantar-el-stack)
+9. [Estructura del proyecto](#9-estructura-del-proyecto)
+10. [Estrategia de branching](#10-estrategia-de-branching)
+11. [Sobre el arquetipo: Gradle vs Maven](#11-sobre-el-arquetipo-gradle-vs-maven)
+12. [Documentación complementaria](#12-documentación-complementaria)
+13. [Próximos pasos](#13-próximos-pasos)
+
+---
+
+## 1. Resumen ejecutivo
+
+SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **pedidos**, **inventario** y **envíos** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Bootstrap) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress), agregando rate limiting, JWT validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
+
+El proyecto demuestra **5 patrones arquitectónicos** (Microservicios, DB per Service, API Gateway, Ingress separado, BFF) y **más de 10 patrones de diseño** (Repository, Service Layer, DTO, State Machine, Optimistic Locking, Saga simplificada, Composite Service, Aggregate Root, Circuit-Breaker-lite, RFC 7807 Problem Detail).
+
+---
+
+## 2. Arquitectura
+
+### 2.1 Diagrama de contenedores
+
+```mermaid
+flowchart LR
+    User((Usuario))
+
+    subgraph Web["Red pública: web"]
+        Traefik["Traefik v3.5<br/>Ingress Controller<br/>:80 / :443"]
+        Frontend["Frontend<br/>React 19 + Vite + Nginx<br/>app.smartlogix.localhost"]
+        Krakend["KrakenD v2.10<br/>API Gateway<br/>api.smartlogix.localhost"]
+        BFF["BFF<br/>Node.js 20 + Express<br/>bff.smartlogix.localhost"]
+    end
+
+    subgraph Internal["Red privada: internal"]
+        MSPed["ms-pedido<br/>Spring Boot 4"]
+        MSInv["ms-inventario<br/>Spring Boot 4"]
+        MSEnv["ms-envio<br/>Spring Boot 4"]
+        DBPed[("db-pedido<br/>PostgreSQL 16")]
+        DBInv[("db-inventario<br/>PostgreSQL 16")]
+        DBEnv[("db-envio<br/>PostgreSQL 16")]
+    end
+
+    User -->|HTTP/HTTPS| Traefik
+    Traefik --> Frontend
+    Traefik --> Krakend
+    Traefik --> BFF
+    Krakend -->|/api/*| BFF
+    BFF -->|REST/JSON| MSPed
+    BFF -->|REST/JSON| MSInv
+    BFF -->|REST/JSON| MSEnv
+    MSPed -->|JDBC| DBPed
+    MSInv -->|JDBC| DBInv
+    MSEnv -->|JDBC| DBEnv
+
+    classDef edge fill:#e1f5ff,stroke:#0288d1
+    classDef bff fill:#fff3e0,stroke:#f57c00
+    classDef ms fill:#e8f5e9,stroke:#388e3c
+    classDef db fill:#f3e5f5,stroke:#7b1fa2
+    class Traefik,Frontend,Krakend edge
+    class BFF bff
+    class MSPed,MSInv,MSEnv ms
+    class DBPed,DBInv,DBEnv db
 ```
-smartlogixs/
-├── docker-compose.yml             # Orquesta el stack completo
-├── .env.example                   # Variables (copiar a .env)
-├── infra/
-│   └── traefik/                   # Config Ingress Controller
-│       ├── traefik.yml
-│       └── dynamic/
-│           ├── routers.yml        # routers por File provider
-│           └── middlewares.yml
-├── docs/
-│   └── modelo-datos.md            # ER y máquinas de estado por MS
-├── frontend/                      # React 19 + Vite + Nginx
-└── backend/
-    ├── bff/                       # Node.js 20 (Express + zod)
-    └── microservices/
-        ├── apigateway/            # KrakenD v2.10.2
-        ├── ms-pedido/             # Spring Boot 4 / Java 25
-        ├── ms-inventario/         # Spring Boot 4 / Java 25
-        └── ms-envio/              # Spring Boot 4 / Java 25
+
+### 2.2 Topología de red Docker
+
+```mermaid
+flowchart TB
+    subgraph WebNet["red: web (pública)"]
+        T[Traefik]
+        F[Frontend]
+        K[KrakenD]
+        B[BFF]
+    end
+
+    subgraph IntNet["red: internal (internal=true, sin acceso a Internet)"]
+        BB[BFF<br/><i>dual-homed</i>]
+        KK[KrakenD<br/><i>dual-homed</i>]
+        P[ms-pedido]
+        I[ms-inventario]
+        E[ms-envio]
+        DP[(db-pedido)]
+        DI[(db-inventario)]
+        DE[(db-envio)]
+    end
+
+    B -.->|conecta<br/>vía interna| BB
+    K -.->|conecta<br/>vía interna| KK
+    BB --> P & I & E
+    KK --> BB
+    P --> DP
+    I --> DI
+    E --> DE
 ```
 
-## Topología
+`web` es la red pública: ingress, frontend y los gateways. `internal` está marcada `internal: true` — Docker bloquea acceso saliente a Internet desde esa red. Las DBs **nunca** tienen puertos expuestos al host.
 
+### 2.3 Flujo de una petición
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario
+    participant T as Traefik (Ingress)
+    participant K as KrakenD (Gateway)
+    participant B as BFF
+    participant M as ms-pedido
+    participant D as db-pedido
+
+    U->>T: GET app.smartlogix.localhost/dashboard
+    T->>T: Match Host header → router
+    T-->>U: HTML/JS (frontend)
+
+    U->>T: GET api.smartlogix.localhost/api/pedidos
+    T->>K: forward (con middlewares: CORS, rate-limit, secure-headers)
+    K->>B: GET /pedidos
+    B->>M: GET /pedidos (HTTP/JSON, timeout 5 s)
+    M->>D: SELECT pedidos
+    D-->>M: rows
+    M-->>B: 200 OK JSON
+    B-->>K: 200 OK JSON
+    K-->>T: 200 OK JSON
+    T-->>U: 200 OK JSON
 ```
-Internet
-   │
-   ▼
-Traefik v3.5 (Ingress)         red: web (pública)
-   ├── app.smartlogix.localhost      → Frontend
-   ├── api.smartlogix.localhost      → API Gateway (KrakenD)
-   ├── bff.smartlogix.localhost      → BFF (debug directo)
-   └── traefik.smartlogix.localhost  → Dashboard
 
-API Gateway → BFF → ms-{inventario,pedido,envio}
-                          │
-                          ▼
-                    db-{...}                red: internal (privada)
+---
+
+## 3. Componentes
+
+| Capa | Componente | Responsabilidad | Stack |
+|---|---|---|---|
+| Edge | **Traefik** | Ingress: routing por host, TLS termination (preparado), middlewares de seguridad | Traefik v3.5 |
+| Gateway | **KrakenD** | API Gateway: routing `/api/*`, rate limiting, JWT validation, CORS | KrakenD v2.10 |
+| Presentación | **Frontend** | SPA del operador logístico (5 pantallas) | React 19, Vite 5, Bootstrap 5, TypeScript 6 |
+| Adaptación | **BFF** | Orquestación de MS para el frontend (saga checkout, dashboard agregado, proxy CRUD) | Node.js 20, Express 4, zod 3 |
+| Negocio | **ms-pedido** | Pedidos + máquina de estados + auditoría | Spring Boot 4, Java 25, JPA, Flyway |
+| Negocio | **ms-inventario** | Productos, bodegas, stock (con optimistic locking) | Spring Boot 4, Java 25, JPA, Flyway |
+| Negocio | **ms-envio** | Envíos, transportistas, seguimiento | Spring Boot 4, Java 25, JPA, Flyway |
+| Datos | **PostgreSQL × 3** | DB per service, aisladas en red privada | PostgreSQL 16-alpine |
+
+### 3.1 Endpoints clave
+
+| MS | Path base | Operaciones | Detalle |
+|---|---|---|---|
+| `ms-pedido` | `/pedidos` | `POST`, `GET /{id}`, `GET /codigo/{c}`, `GET /cliente/{id}`, `GET ?estado=`, `PATCH /{id}/estado` | [README](backend/microservices/ms-pedido/) |
+| `ms-inventario` | `/productos`, `/bodegas`, `/stock` | CRUD productos/bodegas + `POST /stock/{entrada,salida,reservar,liberar}` | [README](backend/microservices/ms-inventario/) |
+| `ms-envio` | `/envios`, `/transportistas` | CRUD + `PATCH /{id}/{transportista,estado}` | [README](backend/microservices/ms-envio/) |
+| `BFF` | (multiple) | `GET /dashboard`, `GET /pedidos/:id/full`, `POST /checkout`, proxy CRUD | [README](backend/bff/) |
+
+---
+
+## 4. Flujos clave
+
+### 4.1 Checkout (saga simplificada)
+
+El BFF coordina tres microservicios en una saga con compensaciones best-effort cuando algo falla en medio.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente (Frontend)
+    participant B as BFF
+    participant P as ms-pedido
+    participant I as ms-inventario
+    participant E as ms-envio
+
+    C->>B: POST /checkout { idCliente, items, idBodega, envio }
+    B->>B: validar con zod
+    B->>P: POST /pedidos
+    P-->>B: 201 + idPedido
+
+    loop por cada item
+        B->>I: POST /stock/reservar
+        I-->>B: 200 / 409 (stock insuficiente)
+    end
+
+    alt todas las reservas OK
+        B->>E: POST /envios
+        E-->>B: 201 + tracking
+        B-->>C: 200 + { pedido, envio, reservas }
+    else alguna reserva falló
+        Note over B: rollback best-effort
+        B->>I: POST /stock/liberar (por cada reserva ya hecha)
+        B-->>C: 4xx + ProblemDetail
+    end
 ```
 
-- **`web`**: red pública donde Traefik enruta tráfico externo
-- **`internal`** (`internal: true`): red aislada; las DBs no son alcanzables desde Internet
+### 4.2 Frontend ↔ BFF (con proxy de Vite)
 
-## Levantar el stack
+```mermaid
+flowchart LR
+    Vite["Vite dev :5173"]
+    Page["DashboardPage.tsx"]
+    Hook["useFetch&lt;T&gt;"]
+    Client["apiClient.ts"]
+    Proxy["Vite proxy<br/>/api/* → bff:80"]
+    BFF["BFF :3000<br/>(via Traefik)"]
 
-### 1. Pre-requisitos
+    Page --> Hook
+    Hook --> Client
+    Client -->|GET /api/dashboard| Vite
+    Vite --> Proxy
+    Proxy -->|Host: bff.smartlogix.localhost| BFF
+    BFF -->|JSON DashboardResponse| Proxy
+    Proxy -->|JSON| Client
+    Client -->|tipado T| Hook
+    Hook -->|FetchState<T>| Page
+```
 
-- Docker Desktop (Windows/Mac) o Docker Engine + Compose v2 (Linux)
-- Editar el `hosts` de tu sistema:
+En dev se evita CORS reescribiendo `/api/*` a través del proxy de Vite. En prod, Nginx (que sirve el build) replica el mismo prefijo `/api/*` hacia el BFF dentro de la red Docker.
 
-**Windows** (`C:\Windows\System32\drivers\etc\hosts`, como administrador):
+---
+
+## 5. Modelo de datos
+
+Tres agregados independientes, sin FKs cruzadas — los IDs que cruzan dominios son **identificadores lógicos** (strings o longs) que cada servicio valida vía API REST.
+
+```mermaid
+erDiagram
+    PEDIDO ||--o{ PEDIDO_ITEM : tiene
+    PEDIDO ||--o{ PEDIDO_HISTORIAL : audita
+    PEDIDO {
+        long idPedido PK
+        string codigo "PED-YYYYMMDD-XXXXXX"
+        enum estado
+        string idCliente "ID lógico"
+        decimal subtotal
+        decimal impuesto
+        decimal total
+    }
+    PEDIDO_ITEM {
+        long idItem PK
+        long idProducto "ID lógico → inventario"
+        int cantidad
+        decimal precioUnitario
+    }
+
+    PRODUCTO ||--o{ STOCK : "existe en"
+    BODEGA ||--o{ STOCK : "almacena"
+    STOCK ||--o{ MOVIMIENTO_STOCK : registra
+    PRODUCTO {
+        long idProducto PK
+        string sku UK
+        decimal precio
+    }
+    STOCK {
+        long idStock PK
+        int cantidad
+        int cantReservada
+        int stockMinimo
+        long version "Optimistic lock"
+    }
+
+    ENVIO ||--o{ ENVIO_SEGUIMIENTO : registra
+    TRANSPORTISTA ||--o{ ENVIO : "asigna"
+    ENVIO {
+        long idEnvio PK
+        long idPedido "ID lógico → pedido"
+        string trackingNumber UK "ENV-YYYYMMDD-XXXXXXXX"
+        enum estado
+        string direccionDestino
+    }
+```
+
+Detalle completo en [`docs/modelo-datos.md`](docs/modelo-datos.md).
+
+### 5.1 Máquinas de estado
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> PENDIENTE
+    PENDIENTE --> APROBADO
+    PENDIENTE --> RECHAZADO
+    PENDIENTE --> CANCELADO
+    APROBADO --> EN_PREPARACION
+    APROBADO --> CANCELADO
+    EN_PREPARACION --> ENVIADO
+    EN_PREPARACION --> CANCELADO
+    ENVIADO --> ENTREGADO
+    RECHAZADO --> [*]
+    ENTREGADO --> [*]
+    CANCELADO --> [*]
+```
+
+*Estados de `Pedido`*: las transiciones se validan en `OrderServiceImpl` contra un `Map<EstadoPedido, Set<EstadoPedido>>` declarado como datos. Cualquier transición ilegal devuelve **409 Conflict** vía `GlobalExceptionHandler`.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> CREADO
+    CREADO --> ASIGNADO : asignar transportista
+    ASIGNADO --> EN_RUTA
+    EN_RUTA --> ENTREGADO
+    EN_RUTA --> INCIDENCIA
+    INCIDENCIA --> EN_RUTA : reintentar
+    INCIDENCIA --> ENTREGADO
+    ENTREGADO --> [*]
+```
+
+*Estados de `Envio`*: `INCIDENCIA` es una rama lateral **reintentable**. Cada transición persiste una fila en `envio_seguimiento` (audit log inmutable).
+
+---
+
+## 6. Patrones aplicados
+
+### 6.1 Arquitectónicos
+
+| Patrón | Dónde se ve | Problema que resuelve |
+|---|---|---|
+| **Microservicios** | 3 MS Spring Boot independientes | Despliegue y evolución por dominio, sin acoplamiento de releases |
+| **Database per Service** | `db-pedido`, `db-inventario`, `db-envio` aisladas | Cada equipo evoluciona su schema sin coordinar |
+| **API Gateway** | KrakenD v2.10 | Cross-cutting: rate limiting, JWT, CORS, sin contaminar los MS |
+| **Ingress separado** | Traefik v3.5 + KrakenD | TLS/routing por host (edge) separado de policy de API |
+| **Backend For Frontend** | Node.js + Express | Endpoint óptimo por pantalla, agregación, orquestación |
+
+### 6.2 De diseño (selección — más detalle en cada README de componente)
+
+- **Repository Pattern** (Spring Data JPA repositories)
+- **Service Layer** (interfaz + impl, transaccional)
+- **DTO** (records Java, inmutables, validables)
+- **State Machine** (Pedido + Envio)
+- **Optimistic Locking** (`@Version` en `Stock`)
+- **Saga simplificada / Composite Service** (checkout con compensaciones)
+- **Aggregate Root** (`Pedido` → items + historial; `Envio` → seguimiento; `Stock` → movimientos)
+- **Circuit-Breaker-lite** (BFF: `AbortController` + tolerancia parcial en agregaciones)
+- **RFC 7807 ProblemDetail** (formato unificado de errores en MS y BFF)
+- **Schema-first migrations** (Flyway autoritativo, Hibernate en `ddl-auto=validate`)
+
+Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf).
+
+---
+
+## 7. Stack tecnológico
+
+| Capa | Tecnologías |
+|---|---|
+| Frontend | React 19, Vite 5, TypeScript 6, react-router-dom 7, react-bootstrap 5 |
+| BFF | Node.js 20, Express 4, http-proxy-middleware 3, zod 3, morgan |
+| Gateway | KrakenD v2.10 (declarativo via `krakend.json`) |
+| Ingress | Traefik v3.5 (provider File) |
+| Backend MS | Spring Boot 4.0.6, Java 25, Spring Web MVC, Spring Data JPA, Hibernate, Flyway, Bean Validation, Lombok |
+| DB | PostgreSQL 16-alpine |
+| Build | Gradle 9 (Groovy DSL) — ver [§11](#11-sobre-el-arquetipo-gradle-vs-maven) |
+| Tests | JUnit 5, Mockito, Spring `@WebMvcTest` (en rama `feature/tests-unitarios`) |
+| Contenedores | Docker + Docker Compose v2 |
+
+---
+
+## 8. Levantar el stack
+
+### 8.1 Pre-requisitos
+
+- **Docker Desktop** (Windows/Mac) o Docker Engine + Compose v2 (Linux)
+- En Windows, agregar al `hosts` (`C:\Windows\System32\drivers\etc\hosts`, como administrador):
+
 ```
 127.0.0.1 app.smartlogix.localhost
 127.0.0.1 api.smartlogix.localhost
@@ -64,168 +388,131 @@ API Gateway → BFF → ms-{inventario,pedido,envio}
 127.0.0.1 traefik.smartlogix.localhost
 ```
 
-> En Linux/Mac, `*.localhost` resuelve automáticamente; los browsers modernos también lo hacen sin tocar hosts.
+> En Linux/Mac, `*.localhost` resuelve automáticamente; los browsers modernos también.
 
-### 2. Variables
-
-```bash
-cp .env.example .env
-# editar passwords si lo necesitas
-```
-
-### 3. Build + up
+### 8.2 Build + up
 
 ```bash
+cp .env.example .env       # editar passwords si lo necesitas
 docker compose up --build -d
+docker compose ps          # esperar 10 contenedores Up
 ```
 
-Verificar:
-```bash
-docker compose ps
-```
-
-Esperado: 10 contenedores arriba (traefik, frontend, apigateway, bff, 3× ms, 3× db).
-
-### 4. Smoke tests
+### 8.3 Smoke tests
 
 | URL | Qué deberías ver |
 |---|---|
 | http://app.smartlogix.localhost | Frontend React |
 | http://api.smartlogix.localhost/api/pedidos | Listado vía KrakenD → BFF |
 | http://bff.smartlogix.localhost/health | `{"status":"ok","service":"bff"}` |
-| http://bff.smartlogix.localhost/dashboard | Agregado de estado del sistema |
+| http://bff.smartlogix.localhost/dashboard | Agregados de estado del sistema |
 | http://traefik.smartlogix.localhost | Dashboard Traefik |
 
-## Componentes
-
-### Traefik (Ingress Controller v3.5)
-
-- Provider **File** (en `infra/traefik/dynamic/routers.yml`) — descubrimiento por archivo, **no** por labels Docker
-  - Workaround para el bug del provider Docker del cliente Go en Docker Desktop Windows
-- Middlewares reutilizables en `dynamic/middlewares.yml`: `secure-headers`, `rate-limit`, `cors-api`
-- Entrypoints: `web` (80), `websecure` (443, preparado), `traefik` (8080, dashboard)
-
-### KrakenD (API Gateway v2.10.2)
-
-- Configuración declarativa en `backend/microservices/apigateway/krakend.json`
-- Routing: `/api/inventario/*`, `/api/pedidos/*`, `/api/envios/*` → BFF
-- JWT validator preparado para activarse cuando exista emisor
-
-### BFF (Node.js 20 + Express + zod)
-
-- Estructura modular: `clients/`, `services/`, `routes/`, `middleware/`, `schemas/`
-- **Endpoints compuestos** (valor agregado del BFF):
-  - `GET /pedidos/:id/full` — pedido + envíos + disponibilidad de stock por producto
-  - `POST /checkout` — orquesta crear pedido → reservar stock → crear envío (con rollback best-effort)
-  - `GET /dashboard` — agregados (pedidos por estado, stock bajo, envíos en ruta)
-- **Endpoints proxy** para CRUD simple: `/inventario/*`, `/pedidos/*`, `/envios/*`
-- Manejo centralizado de errores (RFC 7807 ProblemDetail), validación con zod, `UpstreamError` con timeout
-
-### Microservicios (Spring Boot 4 + Java 25)
-
-Cada MS:
-- **Build con Gradle** (ver justificación más abajo)
-- **JPA + Hibernate** en modo `ddl-auto=validate` (Flyway es la fuente de verdad del schema)
-- **Flyway** con `V1__init_schema.sql` por servicio
-- **Bean Validation** en DTOs, `@RestControllerAdvice` con `GlobalExceptionHandler` global
-- **Spring Data JPA repositories**, **service layer** transaccional
-- Endpoints REST documentados en el README de cada uno
-
-Servicios:
-
-| MS | Responsable de | Endpoints clave |
-|---|---|---|
-| [`ms-pedido`](backend/microservices/ms-pedido/) | Pedidos + máquina de estados | `POST /pedidos`, `PATCH /pedidos/{id}/estado` |
-| [`ms-inventario`](backend/microservices/ms-inventario/) | Productos, Bodegas, Stock (con `@Version` optimistic lock) | `POST /stock/{entrada,salida,reservar,liberar}` |
-| [`ms-envio`](backend/microservices/ms-envio/) | Envíos, Transportistas, Seguimiento | `POST /envios`, `PATCH /envios/{id}/{transportista,estado}` |
-
-### PostgreSQL 16 (DB-per-Service)
-
-- 3 instancias separadas (`db-inventario`, `db-pedido`, `db-envio`)
-- Aisladas en red `internal`, sin puertos expuestos al host
-- Volúmenes persistentes: `pg-{inventario,pedido,envio}-data`
-- Healthcheck con `pg_isready`
-
-## Patrones aplicados
-
-A nivel arquitectónico y de código, este monorepo demuestra:
-
-- **Microservicios** con **Database per Service** (sin FKs cruzadas)
-- **API Gateway** (KrakenD) + **Ingress** (Traefik) separados
-- **Backend For Frontend** con orquestación de varios MS (saga simplificada para checkout)
-- **Repository / Service Layer / DTO** en cada MS
-- **State Machine** para Pedido y Envio (transiciones validadas en el service)
-- **Optimistic Locking** (`@Version`) en `Stock`
-- **Circuit-Breaker-lite** en BFF (fetch con `AbortController` + tolerancia a fallos parciales en agregaciones)
-- **RFC 7807 ProblemDetail** para errores en todos los servicios
-- **Schema-first migrations** con Flyway, validadas por Hibernate
-
-Detalle en cada README de componente y en `docs/modelo-datos.md`.
-
-## Comandos útiles
+### 8.4 Comandos útiles
 
 ```bash
-# Logs en vivo
-docker compose logs -f
-docker compose logs -f bff
-
-# Rebuild de un servicio específico
-docker compose up -d --build bff
-
-# Conectar a una DB
-docker compose exec db-inventario psql -U inventario -d inventario
-
-# Bajar todo (mantiene volúmenes)
-docker compose down
-
-# Bajar todo y borrar volúmenes (⚠ pierde data)
-docker compose down -v
-
-# Validar sintaxis del compose
-docker compose config
+docker compose logs -f bff               # logs en vivo de un servicio
+docker compose up -d --build bff         # rebuild aislado
+docker compose exec db-pedido psql -U pedido -d pedido   # conectarse a una DB
+docker compose down                      # bajar (mantiene volúmenes)
+docker compose down -v                   # bajar + borrar data
+docker compose config                    # validar sintaxis
 ```
 
-## Sobre el "arquetipo" del proyecto: por qué Gradle y no Maven
+---
 
-La rúbrica EV2 menciona "arquetipos Maven" como herramienta para generar nuevos componentes backend. En este monorepo los 3 microservicios y el BFF se construyeron con **Gradle 9** (Groovy DSL) en lugar de Maven. La elección está fundamentada y los `build.gradle` cumplen la misma función que un arquetipo: son un **template reutilizable**.
+## 9. Estructura del proyecto
 
-### Justificación de la elección
+```
+smartlogixs/
+├── docker-compose.yml                # orquesta el stack completo
+├── .env.example                      # variables (copiar a .env)
+├── infra/
+│   └── traefik/
+│       ├── traefik.yml               # config estática
+│       └── dynamic/                  # routers + middlewares
+├── docs/
+│   ├── modelo-datos.md               # ER y máquinas de estado
+│   ├── analisis-patrones-arquetipos.pdf
+│   ├── plan-branching.pdf
+│   └── repositorios.txt
+├── frontend/                         # SPA React 19 + TypeScript
+│   ├── src/
+│   │   ├── client/                   # apiClient.ts, useFetch.ts
+│   │   ├── types/api.ts              # DTOs TS (espejo de los records Java)
+│   │   ├── pages/                    # 5 páginas conectadas al BFF
+│   │   └── components/               # Layout, Sidebar
+│   └── vite.config.js                # proxy /api/* → BFF en dev
+└── backend/
+    ├── bff/                          # Node.js 20 + Express + zod
+    │   └── src/{routes,services,clients,schemas,middleware}/
+    └── microservices/
+        ├── apigateway/               # KrakenD declarativo
+        ├── ms-pedido/                # Spring Boot 4
+        ├── ms-inventario/            # Spring Boot 4
+        └── ms-envio/                 # Spring Boot 4
+```
 
-1. **Performance**. Gradle incremental + build cache + paralelización deja tiempos de build (`./gradlew bootJar`) significativamente menores que Maven, especialmente en un monorepo con varios módulos. En este repo cada MS compila + empaqueta en ~30 s; con Maven equivalente serían 60-90 s por módulo.
+---
 
-2. **Generación inicial**. Los proyectos fueron generados con **Spring Initializr** (`start.spring.io`), que es el "arquetipo oficial" del ecosistema Spring Boot 4. Initializr emite por defecto un proyecto Gradle y es la herramienta recomendada por VMware/Broadcom — equivalente conceptual al `mvn archetype:generate` pero con UI/CLI y catálogo actualizado.
+## 10. Estrategia de branching
 
-3. **DSL declarativo más legible**. Los `build.gradle` de los 3 MS son idénticos en estructura (mismo set de plugins, mismas dependencias), funcionan como **plantilla copy-paste** sin la verbosidad del XML de Maven. Para sumar un nuevo MS:
-   ```bash
-   cp -r backend/microservices/ms-pedido backend/microservices/ms-nuevo
-   # renombrar package y settings.gradle
-   ```
-   Esto es exactamente el rol de un arquetipo: garantizar consistencia de stack y estructura entre componentes.
+Se usa **GitFlow simplificado** con tres tipos de rama: `main` (estable, entregable), `develop` (integración) y `feature/<kebab-case>` (trabajo en curso). Cada feature se cierra con un **Pull Request** contra `develop` o `main` y se mergea preservando la historia (merge commit, no squash).
 
-4. **Soporte multi-módulo nativo**. Gradle soporta `settings.gradle` con `include` para builds multi-proyecto sin parent POMs ni propagación manual de versiones. Si más adelante movemos los MS a un único build, queda directo.
+```mermaid
+gitGraph
+    commit id: "initial"
+    branch develop
+    commit id: "estructura inicial"
+    branch feature/frontend-setup
+    commit id: "setup TS + Vite"
+    commit id: "dashboard visual"
+    checkout main
+    merge feature/frontend-setup tag: "PR #2"
+    branch feature/improvement-pedido
+    commit id: "DTOs + state machine"
+    checkout main
+    merge feature/improvement-pedido tag: "PR #4"
+    branch feature/frontend-backend-integration
+    commit id: "apiClient + types"
+    commit id: "5 pages conectadas"
+    checkout main
+    merge feature/frontend-backend-integration tag: "PR #5"
+```
 
-5. **Tooling moderno**. La mayoría de los proyectos del ecosistema Spring/JVM contemporáneo (Spring Framework 7, Spring Boot 4, Kotlin, Android) usan Gradle internamente. Mantener consistencia con upstream reduce fricción en debugging y upgrade de dependencias.
+Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-branching.pdf`](docs/plan-branching.pdf).
 
-### Si la rúbrica exige Maven estricto
+---
 
-Para satisfacer literalmente el requisito de "arquetipo Maven", se puede:
+## 11. Sobre el arquetipo: Gradle vs Maven
 
-1. **Generar un arquetipo Maven a partir de un MS de referencia** una vez listo:
-   ```bash
-   cd backend/microservices/ms-pedido
-   mvn archetype:create-from-project
-   # genera target/generated-sources/archetype/
-   ```
-   El arquetipo resultante puede instalarse local (`mvn install`) y usarse para generar nuevos MS con `mvn archetype:generate -DarchetypeArtifactId=...`.
+La rúbrica EV2 menciona "arquetipos Maven". En este monorepo los 3 microservicios y el BFF se construyeron con **Gradle 9** porque:
 
-2. **Convertir un MS a Maven** ejecutando `gradle init --type pom` desde el directorio del MS (o migrando manualmente el `build.gradle` a `pom.xml`).
+1. **Spring Initializr (el arquetipo oficial de Spring Boot 4) emite por defecto proyectos Gradle**. Es la herramienta recomendada por VMware/Broadcom, equivalente conceptual al `mvn archetype:generate` pero con catálogo siempre actualizado.
+2. **Los `build.gradle` cumplen el rol de un arquetipo**: estructura idéntica entre los 3 MS, plantilla copy-paste para crear un nuevo servicio.
+3. **Performance**: `./gradlew bootJar` toma ~30 s por MS (incremental + build cache). El equivalente Maven sería 60–90 s.
+4. **DSL declarativo más legible** que el XML de Maven.
 
-3. **Mantener Gradle y argumentar** durante la defensa oral con los puntos anteriores: el patrón de "template reutilizable" se cumple, y la elección está respaldada por consideraciones técnicas (performance, tooling oficial, DSL).
+Si la rúbrica exige Maven literal, basta con `mvn archetype:create-from-project` desde un MS de referencia para generar el arquetipo a partir del código actual (operación reversible de ~1–2 h). Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) §5.
 
-## Próximos pasos
+---
+
+## 12. Documentación complementaria
+
+| Documento | Propósito |
+|---|---|
+| [`docs/modelo-datos.md`](docs/modelo-datos.md) | ER detallado y máquinas de estado |
+| [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
+| [`docs/plan-branching.pdf`](docs/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
+| [`docs/repositorios.txt`](docs/repositorios.txt) | Enlaces a GitHub por componente |
+
+---
+
+## 13. Próximos pasos
 
 1. **Activar JWT real**: configurar el JWT validator de KrakenD con secret/issuer real (Auth0 / Keycloak)
 2. **Activar HTTPS**: descomentar la sección `certificatesResolvers` en `traefik.yml`
 3. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite)
-4. **Healthchecks de MS**: agregar `spring-boot-starter-actuator` y descomentar HEALTHCHECK en los Dockerfiles
-5. **Tests unitarios** por servicio (cobertura, parte de la rúbrica EV2)
+4. **Healthchecks de MS**: agregar `spring-boot-starter-actuator` + `HEALTHCHECK` en los Dockerfiles (implementado en la rama `feature/tests-unitarios`, pendiente de merge)
+5. **Tests unitarios** por servicio con cobertura ≥70% (implementado en la rama `feature/tests-unitarios`, pendiente de merge)
+6. **Arquetipo Maven explícito** si la rúbrica lo exige literalmente
