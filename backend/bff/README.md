@@ -1,17 +1,210 @@
 # SmartLogix BFF
 
-Backend For Frontend del sistema SmartLogix. Orquesta llamadas a los microservicios y expone una API optimizada para el cliente frontend.
+> **Backend For Frontend** del sistema SmartLogix. Orquesta los 3 microservicios, compone respuestas para el frontend y expone una API simétrica al cliente.
 
-## Estructura
+← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [Frontend](../../frontend/README.md) · [API Gateway](../microservices/apigateway/README.md) · [ms-pedido](../microservices/ms-pedido/README.md) · [ms-inventario](../microservices/ms-inventario/README.md) · [ms-envio](../microservices/ms-envio/README.md)
 
-Repositorio: [smartLogixfs/BFF](https://github.com/smartLogixfs/BFF)
+---
 
-Forma parte del ecosistema SmartLogix:
-- [smartlogixs](https://github.com/smartLogixfs/smartlogixs) — repo paraguas
-- [Docs](https://github.com/smartLogixfs/Docs) — documentación
-- [Front](https://github.com/smartLogixfs/Front) — frontend
-- [MS](https://github.com/smartLogixfs/MS) — microservicios
+## Tabla de contenidos
 
-## Setup
+1. [Resumen](#1-resumen)
+2. [Posición en la arquitectura](#2-posición-en-la-arquitectura)
+3. [Estructura interna](#3-estructura-interna)
+4. [API](#4-api)
+5. [Flujo del checkout (saga)](#5-flujo-del-checkout-saga)
+6. [Manejo de errores (RFC 7807)](#6-manejo-de-errores-rfc-7807)
+7. [Variables de entorno](#7-variables-de-entorno)
+8. [Cómo ejecutar](#8-cómo-ejecutar)
+9. [Patrones aplicados](#9-patrones-aplicados)
 
-_Pendiente — agregar instrucciones de instalación y ejecución._
+---
+
+## 1. Resumen
+
+El BFF es la **capa de adaptación** entre el frontend y la malla de microservicios. Implementa dos tipos de endpoints:
+
+1. **Proxy passthrough** — CRUD simple a cada MS (`/inventario/*`, `/pedidos/*`, `/envios/*`).
+2. **Compuestos / orquestados** — agregan o coordinan llamadas a varios MS:
+   - `GET /dashboard` — pedidos por estado, top stock bajo, envíos en ruta
+   - `GET /pedidos/:id/full` — pedido + envíos + disponibilidad por producto (con `Promise.all`)
+   - `POST /checkout` — saga: crear pedido → reservar stock → crear envío (con rollback best-effort)
+
+**Stack**: Node.js 20 · Express 4 · http-proxy-middleware 3 · zod 3 · morgan.
+
+## 2. Posición en la arquitectura
+
+```mermaid
+flowchart LR
+    FE[Frontend React]
+    KR[KrakenD Gateway]
+    BFF["BFF (este servicio)"]
+    P[ms-pedido]
+    I[ms-inventario]
+    E[ms-envio]
+
+    FE -->|directo via Traefik<br/>bff.smartlogix.localhost| BFF
+    FE -->|via KrakenD<br/>api.smartlogix.localhost/api/*| KR
+    KR --> BFF
+    BFF --> P
+    BFF --> I
+    BFF --> E
+
+    classDef bff fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    class BFF bff
+```
+
+El BFF es alcanzable por **dos caminos** desde Traefik: directo (`bff.smartlogix.localhost`, útil para debug) y vía KrakenD (`api.smartlogix.localhost/api/*`, ruta productiva con rate limiting y JWT).
+
+## 3. Estructura interna
+
+```mermaid
+flowchart TB
+    subgraph Server["server.js (Express app)"]
+        MW["middleware<br/>(morgan, json, validate, errorHandler)"]
+        Routes["routes/<br/>(health, checkout, pedidos,<br/>dashboard, proxy)"]
+    end
+
+    subgraph Services["services/"]
+        CK["checkoutService<br/>(saga + rollback)"]
+        DS["dashboardService<br/>(Promise.all + .catch)"]
+        PC["pedidoComposerService<br/>(/pedidos/:id/full)"]
+    end
+
+    subgraph Clients["clients/"]
+        HC["httpClient<br/>(fetch + AbortController<br/>+ UpstreamError)"]
+        MP[msPedido]
+        MI[msInventario]
+        ME[msEnvio]
+    end
+
+    subgraph Schemas["schemas/"]
+        CKS["checkout.js (zod)"]
+    end
+
+    Routes --> Services
+    Routes --> Schemas
+    Services --> Clients
+    MP --> HC
+    MI --> HC
+    ME --> HC
+```
+
+## 4. API
+
+| Método | Path | Descripción |
+|---|---|---|
+| GET | `/health` | Health check: `{ status: "ok", service: "bff" }` |
+| GET | `/` | Manifiesto: lista de endpoints disponibles |
+| **Compuestos** | | |
+| GET | `/dashboard` | Cuentas de pedidos por estado, top stock bajo, envíos en ruta |
+| GET | `/pedidos/:id/full` | Pedido + envíos asociados + disponibilidad agregada por producto |
+| POST | `/checkout` | Orquesta crear pedido → reservar stock por ítem → crear envío |
+| **Proxy passthrough** | | |
+| ANY | `/inventario/*` | → `ms-inventario` |
+| ANY | `/pedidos/*` | → `ms-pedido` |
+| ANY | `/envios/*` | → `ms-envio` |
+
+## 5. Flujo del checkout (saga)
+
+`POST /checkout` es el endpoint más interesante: orquesta 3 servicios en una **saga** con compensaciones best-effort si algo falla a mitad de camino.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant B as BFF<br/>checkoutService
+    participant P as ms-pedido
+    participant I as ms-inventario
+    participant E as ms-envio
+
+    C->>B: POST /checkout { idCliente, items, idBodega, envio }
+    B->>B: zod.parse(body) — 400 si inválido
+    B->>P: POST /pedidos
+    P-->>B: 201 + { idPedido, codigo }
+
+    loop por cada item del pedido
+        B->>I: POST /stock/reservar<br/>(con referenciaPedido)
+        I-->>B: 200 OK / 409 Conflict
+    end
+
+    alt todas las reservas OK
+        B->>E: POST /envios { idPedido, direccionDestino, ... }
+        E-->>B: 201 + { trackingNumber }
+        B-->>C: 200 + { pedido, envio, reservas: [...] }
+    else falla alguna reserva
+        Note over B: rollback best-effort
+        loop por reserva ya hecha
+            B->>I: POST /stock/liberar
+        end
+        B-->>C: 4xx ProblemDetail<br/>{ pedido, reservas: [{ status: 'rolled-back' }] }
+    end
+```
+
+> Los rollbacks son **compensaciones lógicas**, no aborts de DB (los MS no comparten transacción). Si el rollback también falla, se loggea y queda como inconsistencia para intervención manual.
+
+## 6. Manejo de errores (RFC 7807)
+
+Centralizado en `middleware/errorHandler.js`. Convierte cualquier excepción en JSON `application/problem+json`:
+
+| Excepción | Status devuelto | Body |
+|---|---|---|
+| `ZodError` | 400 | `{ title, detail, errors: { campo: mensaje } }` |
+| `UpstreamError` timeout | 504 | `{ detail: "ms-X timeout (5000ms)" }` |
+| `UpstreamError` red | 502 | `{ detail: "ms-X inalcanzable: ..." }` |
+| `UpstreamError` status upstream | igual al upstream | propaga `body` del MS |
+| `Error` genérico | 500 | `{ detail: "Internal Server Error" }` (log completo en stderr) |
+
+## 7. Variables de entorno
+
+| Variable | Default | Función |
+|---|---|---|
+| `PORT` | `3000` | Puerto HTTP del BFF |
+| `MS_INVENTARIO_URL` | `http://ms-inventario:8080` | URL base del MS de inventario |
+| `MS_PEDIDO_URL` | `http://ms-pedido:8080` | URL base del MS de pedido |
+| `MS_ENVIO_URL` | `http://ms-envio:8080` | URL base del MS de envío |
+| `HTTP_TIMEOUT_MS` | `5000` | Timeout (AbortController) para cada llamada a MS |
+
+## 8. Cómo ejecutar
+
+### Vía Docker (recomendado)
+
+Desde la raíz del monorepo:
+
+```bash
+docker compose up -d bff   # levanta bff + dependencias
+```
+
+### Local (sin Docker)
+
+```bash
+cd backend/bff
+npm install
+npm run dev    # node --watch
+# o
+npm start
+```
+
+### Smoke test
+
+```bash
+curl http://bff.smartlogix.localhost/health
+curl http://bff.smartlogix.localhost/dashboard
+curl -X POST http://bff.smartlogix.localhost/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idCliente": "CL-001",
+    "idBodega": 1,
+    "envio": { "direccionDestino": "Av. Providencia 1234", "comuna": "Providencia", "region": "RM" },
+    "items": [ {"idProducto": 1, "sku": "SKU-001", "cantidad": 2, "precioUnitario": 5000} ]
+  }'
+```
+
+## 9. Patrones aplicados
+
+- **BFF (Backend For Frontend)** — API tallada a la medida de las pantallas del operador
+- **Composite Service** — `dashboardService` y `pedidoComposerService` agregan varios MS en paralelo con `Promise.all`
+- **Saga simplificada** — `checkoutService` con compensaciones best-effort
+- **Circuit-Breaker-lite** — cada llamada va envuelta en `AbortController` con timeout; agregaciones toleran fallos parciales con `.catch()`
+- **Schema Validation (zod)** — entrada validada antes de tocar los MS
+- **RFC 7807 ProblemDetail** — formato unificado de errores entre BFF y MS
