@@ -1,0 +1,123 @@
+================================================================
+SmartLogix - Enlaces a Repositorios
+Evaluación Parcial N°2 · DSY1106 Desarrollo Fullstack III
+================================================================
+
+Estrategia: monorepo unico en GitHub que agrupa todos los componentes
+del sistema (frontend, BFF, microservicios, API Gateway, infra).
+Esta decision facilita versionar el stack completo de forma atomica
+y mantener sincronizados los contratos entre componentes.
+
+----------------------------------------------------------------
+REPOSITORIO PRINCIPAL (monorepo)
+----------------------------------------------------------------
+
+URL:         https://github.com/smartLogixfs/smartlogixs
+Branch main: https://github.com/smartLogixfs/smartlogixs/tree/main
+Descripcion: Monorepo del sistema SmartLogix. Contiene el codigo
+             fuente de todos los componentes, la configuracion de
+             infraestructura (Docker Compose, Traefik, KrakenD) y
+             la documentacion del proyecto.
+
+----------------------------------------------------------------
+COMPONENTES INDIVIDUALES (paths dentro del monorepo)
+----------------------------------------------------------------
+
+[1] FRONTEND - React 19 + Vite + Nginx
+    Path: /frontend
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/frontend
+    Descripcion: SPA en React 19 servida por Nginx en produccion y por
+                 Vite en desarrollo. Consume al BFF y al API Gateway.
+    Stack: React 19, Vite 5, Nginx, JavaScript ES2022.
+
+[2] BFF (Backend For Frontend) - Node.js
+    Path: /backend/bff
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/backend/bff
+    Descripcion: Capa de adaptacion entre el frontend y los microservicios.
+                 Expone endpoints compuestos (/dashboard, /checkout,
+                 /pedidos/:id/full) y proxy passthrough para CRUD simple.
+    Stack: Node.js 20, Express 4, http-proxy-middleware, zod.
+
+[3] MICROSERVICIO PEDIDO
+    Path: /backend/microservices/ms-pedido
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/backend/microservices/ms-pedido
+    Descripcion: Dueno del agregado Pedido. Persiste pedidos, items y
+                 auditoria de cambios de estado. Maquina de estados
+                 PENDIENTE -> APROBADO -> ... -> ENTREGADO.
+    Stack: Spring Boot 4.0.6, Java 25, PostgreSQL 16, Flyway, JPA, Gradle 9.
+
+[4] MICROSERVICIO INVENTARIO
+    Path: /backend/microservices/ms-inventario
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/backend/microservices/ms-inventario
+    Descripcion: Dueno de productos, bodegas y stock. Optimistic locking
+                 con @Version en Stock. Unico MS autorizado para mutar
+                 existencias.
+    Stack: Spring Boot 4.0.6, Java 25, PostgreSQL 16, Flyway, JPA, Gradle 9.
+
+[5] MICROSERVICIO ENVIO
+    Path: /backend/microservices/ms-envio
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/backend/microservices/ms-envio
+    Descripcion: Gestion de envios y transportistas. Genera tracking
+                 numbers, registra seguimiento punto a punto, maquina
+                 de estados con INCIDENCIA reintentable.
+    Stack: Spring Boot 4.0.6, Java 25, PostgreSQL 16, Flyway, JPA, Gradle 9.
+
+[6] API GATEWAY - KrakenD
+    Path: /backend/microservices/apigateway
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/backend/microservices/apigateway
+    Descripcion: API Gateway declarativo. Routing /api/* -> BFF, rate
+                 limiting, CORS, JWT validation preparada. Configuracion
+                 100% en krakend.json.
+    Stack: KrakenD v2.9.4 (Docker).
+
+[7] INFRA - Traefik (Ingress Controller)
+    Path: /infra/traefik
+    URL:  https://github.com/smartLogixfs/smartlogixs/tree/main/infra/traefik
+    Descripcion: Configuracion estatica y dinamica del Ingress Traefik.
+                 Routing por host (app.*, api.*, bff.*, traefik.*),
+                 middlewares de seguridad (headers, rate-limit, CORS),
+                 entrypoints web/websecure preparados para HTTPS.
+    Stack: Traefik v3.5.
+
+----------------------------------------------------------------
+DOCUMENTACION
+----------------------------------------------------------------
+
+[D1] Analisis de Patrones y Arquetipos
+     Path: /docs/analisis-patrones-arquetipos.pdf
+     URL:  https://github.com/smartLogixfs/smartlogixs/blob/main/docs/analisis-patrones-arquetipos.pdf
+
+[D2] Plan de Branching
+     Path: /docs/plan-branching.pdf
+     URL:  https://github.com/smartLogixfs/smartlogixs/blob/main/docs/plan-branching.pdf
+
+[D3] Modelo de datos (ER + maquinas de estado)
+     Path: /docs/modelo-datos.md
+     URL:  https://github.com/smartLogixfs/smartlogixs/blob/main/docs/modelo-datos.md
+
+[D4] Informe EV1
+     Path: /docs/Informe SmartLogix- EV_1.pdf
+
+----------------------------------------------------------------
+RAMAS PRINCIPALES
+----------------------------------------------------------------
+
+main                              -> https://github.com/smartLogixfs/smartlogixs/tree/main
+develop                           -> https://github.com/smartLogixfs/smartlogixs/tree/develop
+feature/frontend-setup            -> https://github.com/smartLogixfs/smartlogixs/tree/feature/frontend-setup
+feature/improvement-pedido        -> https://github.com/smartLogixfs/smartlogixs/tree/feature/improvement-pedido
+feature/inventario                -> https://github.com/smartLogixfs/smartlogixs/tree/feature/inventario
+feature/solicitud_envio           -> https://github.com/smartLogixfs/smartlogixs/tree/feature/solicitud_envio
+feature/tests-unitarios           -> https://github.com/smartLogixfs/smartlogixs/tree/feature/tests-unitarios
+
+----------------------------------------------------------------
+PULL REQUESTS RELEVANTES
+----------------------------------------------------------------
+
+PR #1: feature/improvement-pedido -> main
+       Mejoras de dominio en ms-pedido (DTOs, validaciones, state machine)
+       URL: https://github.com/smartLogixfs/smartlogixs/pull/1
+
+PR #2: feature/frontend-setup -> main
+       Setup inicial del frontend React 19 + Vite + dashboard
+       URL: https://github.com/smartLogixfs/smartlogixs/pull/2
