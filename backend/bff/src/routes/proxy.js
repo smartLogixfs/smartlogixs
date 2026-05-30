@@ -49,4 +49,14 @@ router.use(
   })
 );
 
+router.use(
+  "/usuarios",
+  createProxyMiddleware({
+    target: env.MS_USUARIO_URL,
+    changeOrigin: true,
+    pathRewrite: (_path, req) => req.originalUrl,
+    on: { proxyReq: restreamBody },
+  })
+);
+
 export default router;

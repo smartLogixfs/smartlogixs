@@ -11,6 +11,7 @@ volumes:
   pg-inventario-data:
   pg-pedido-data:
   pg-envio-data:
+  pg-usuario-data:
 
 services:
   # ===========================================================
@@ -149,6 +150,21 @@ services:
     networks:
       - internal
 
+  ms-usuario:
+    build:
+      context: ./backend/microservices/ms-usuario
+    container_name: smartlogix-ms-usuario
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-usuario:5432/${POSTGRES_USUARIO_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USUARIO_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_USUARIO_PASSWORD}
+    depends_on:
+      - db-usuario
+    networks:
+      - internal
+
   # ===========================================================
   # Capa de datos - PostgreSQL 16 (DB-per-service, red privada)
   # ===========================================================
@@ -202,6 +218,24 @@ services:
       - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ENVIO_USER} -d ${POSTGRES_ENVIO_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-usuario:
+    image: postgres:16-alpine
+    container_name: smartlogix-db-usuario
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_USUARIO_DB}
+      POSTGRES_USER: ${POSTGRES_USUARIO_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_USUARIO_PASSWORD}
+    volumes:
+      - pg-usuario-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USUARIO_USER} -d ${POSTGRES_USUARIO_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

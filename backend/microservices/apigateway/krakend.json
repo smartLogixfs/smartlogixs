@@ -112,6 +112,58 @@
           "host": ["http://bff:3000"]
         }
       ]
+    },
+    {
+      "endpoint": "/api/usuarios/{path}",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/usuarios/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/usuarios/{path}",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/usuarios/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/usuarios/{path}",
+      "method": "PUT",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/usuarios/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/usuarios/{path}",
+      "method": "DELETE",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/usuarios/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
     }
   ]
 }
