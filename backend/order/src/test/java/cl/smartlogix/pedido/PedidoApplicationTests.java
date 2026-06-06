@@ -1,4 +1,4 @@
-package cl.smartlogix.pedido;
+package cl.smartlogix.order;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

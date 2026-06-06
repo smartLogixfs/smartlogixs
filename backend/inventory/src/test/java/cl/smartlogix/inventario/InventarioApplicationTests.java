@@ -1,4 +1,4 @@
-package cl.smartlogix.inventario;
+package cl.smartlogix.inventory;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
