@@ -1,6 +1,6 @@
 package cl.smartlogix.pedido.model;
 
-public enum EstadoPedido {
+public enum OrderStatus {
     PENDIENTE,
     APROBADO,
     EN_PREPARACION,

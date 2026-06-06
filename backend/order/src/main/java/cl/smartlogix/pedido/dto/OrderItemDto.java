@@ -1,10 +1,10 @@
 package cl.smartlogix.pedido.dto;
 
-import cl.smartlogix.pedido.model.PedidoItem;
+import cl.smartlogix.pedido.model.Order;
 
 import java.math.BigDecimal;
 
-public record PedidoItemDto(
+public record OrderItemDto(
     Long idItem,
     Long idProducto,
     String sku,
@@ -12,8 +12,8 @@ public record PedidoItemDto(
     BigDecimal precioUnitario,
     BigDecimal subtotal
 ) {
-    public static PedidoItemDto from(PedidoItem item) {
-        return new PedidoItemDto(
+    public static OrderItemDto from(OrderItem item) {
+        return new OrderItemDto(
             item.getIdItem(),
             item.getIdProducto(),
             item.getSku(),

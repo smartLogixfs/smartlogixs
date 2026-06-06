@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Pedido {
+public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +27,7 @@ public class Pedido {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private TipoPedido tipo;
+    private OrderType tipo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -52,11 +52,11 @@ public class Pedido {
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private List<PedidoItem> items = new ArrayList<>();
+    private List<OrderItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private List<PedidoHistorial> historial = new ArrayList<>();
+    private List<OrderHistory> historial = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -76,12 +76,12 @@ public class Pedido {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void addItem(PedidoItem item) {
+    public void addItem(OrderItem item) {
         item.setPedido(this);
         this.items.add(item);
     }
 
-    public void addHistorial(PedidoHistorial h) {
+    public void addHistorial(OrderHistory h) {
         h.setPedido(this);
         this.historial.add(h);
     }

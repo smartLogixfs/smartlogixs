@@ -1,6 +1,6 @@
 package cl.smartlogix.pedido.model;
 
-public enum TipoPedido {
+public enum OrderType {
     ESTANDAR,
     EXPRESS
 }
