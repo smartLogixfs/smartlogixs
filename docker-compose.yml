@@ -8,10 +8,11 @@ networks:
     internal: true
 
 volumes:
-  pg-inventario-data:
-  pg-pedido-data:
-  pg-envio-data:
-  pg-usuario-data:
+  pg-inventory-data:
+  pg-order-data:
+  pg-shipping-data:
+  pg-user-data:
+  pg-auth-data:
 
 services:
   # ===========================================================
@@ -54,10 +55,10 @@ services:
   # ===========================================================
   # Capa de seguridad - API Gateway Krakend
   # ===========================================================
-  apigateway:
+  api-gateway:
     build:
-      context: ./backend/microservices/apigateway
-    container_name: smartlogix-apigateway
+      context: ./backend/api-gateway
+    container_name: smartlogix-api-gateway
     restart: unless-stopped
     environment:
       JWT_SECRET: ${JWT_SECRET}
@@ -84,13 +85,17 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
-      MS_INVENTARIO_URL: http://ms-inventario:8080
-      MS_PEDIDO_URL: http://ms-pedido:8080
-      MS_ENVIO_URL: http://ms-envio:8080
+      MS_INVENTORY_URL: http://inventory:8080
+      MS_ORDER_URL: http://order:8080
+      MS_SHIPPING_URL: http://shipping:8080
+      MS_USER_URL: http://user:8080
+      MS_AUTH_URL: http://auth:8081
     depends_on:
-      - ms-inventario
-      - ms-pedido
-      - ms-envio
+      - inventory
+      - order
+      - shipping
+      - user
+      - auth
     networks:
       - internal
       - web
@@ -104,80 +109,97 @@ services:
   # ===========================================================
   # Capa de negocio - Microservicios Spring Boot
   # ===========================================================
-  ms-inventario:
+  inventory:
     build:
-      context: ./backend/microservices/ms-inventario
-    container_name: smartlogix-ms-inventario
+      context: ./backend/inventory
+    container_name: smartlogix-inventory
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-inventario:5432/${POSTGRES_INVENTARIO_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-inventory:5432/${POSTGRES_INVENTARIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_INVENTARIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_INVENTARIO_PASSWORD}
     depends_on:
-      - db-inventario
+      - db-inventory
     networks:
       - internal
 
-  ms-pedido:
+  order:
     build:
-      context: ./backend/microservices/ms-pedido
-    container_name: smartlogix-ms-pedido
+      context: ./backend/order
+    container_name: smartlogix-order
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-pedido:5432/${POSTGRES_PEDIDO_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-order:5432/${POSTGRES_PEDIDO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PEDIDO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PEDIDO_PASSWORD}
-      MS_INVENTARIO_URL: http://ms-inventario:8080
+      MS_INVENTORY_URL: http://inventory:8080
     depends_on:
-      - db-pedido
+      - db-order
     networks:
       - internal
 
-  ms-envio:
+  shipping:
     build:
-      context: ./backend/microservices/ms-envio
-    container_name: smartlogix-ms-envio
+      context: ./backend/shipping
+    container_name: smartlogix-shipping
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-envio:5432/${POSTGRES_ENVIO_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-shipping:5432/${POSTGRES_ENVIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_ENVIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_ENVIO_PASSWORD}
     depends_on:
-      - db-envio
+      - db-shipping
     networks:
       - internal
 
-  ms-usuario:
+  user:
     build:
-      context: ./backend/microservices/ms-usuario
-    container_name: smartlogix-ms-usuario
+      context: ./backend/user
+    container_name: smartlogix-user
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-usuario:5432/${POSTGRES_USUARIO_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-user:5432/${POSTGRES_USUARIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USUARIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_USUARIO_PASSWORD}
     depends_on:
-      - db-usuario
+      - db-user
+    networks:
+      - internal
+
+  auth:
+    build:
+      context: ./backend/auth
+    container_name: smartlogix-auth
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      DB_URL: jdbc:postgresql://db-auth:5432/${POSTGRES_AUTH_DB}
+      DB_USERNAME: ${POSTGRES_AUTH_USER}
+      DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: http://auth:8081
+    depends_on:
+      - db-auth
     networks:
       - internal
 
   # ===========================================================
   # Capa de datos - PostgreSQL 16 (DB-per-service, red privada)
   # ===========================================================
-  db-inventario:
+  db-inventory:
     image: postgres:16-alpine
-    container_name: smartlogix-db-inventario
+    container_name: smartlogix-db-inventory
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_INVENTARIO_DB}
       POSTGRES_USER: ${POSTGRES_INVENTARIO_USER}
       POSTGRES_PASSWORD: ${POSTGRES_INVENTARIO_PASSWORD}
     volumes:
-      - pg-inventario-data:/var/lib/postgresql/data
+      - pg-inventory-data:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
@@ -186,16 +208,16 @@ services:
       timeout: 5s
       retries: 5
 
-  db-pedido:
+  db-order:
     image: postgres:16-alpine
-    container_name: smartlogix-db-pedido
+    container_name: smartlogix-db-order
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_PEDIDO_DB}
       POSTGRES_USER: ${POSTGRES_PEDIDO_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PEDIDO_PASSWORD}
     volumes:
-      - pg-pedido-data:/var/lib/postgresql/data
+      - pg-order-data:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
@@ -204,16 +226,16 @@ services:
       timeout: 5s
       retries: 5
 
-  db-envio:
+  db-shipping:
     image: postgres:16-alpine
-    container_name: smartlogix-db-envio
+    container_name: smartlogix-db-shipping
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_ENVIO_DB}
       POSTGRES_USER: ${POSTGRES_ENVIO_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ENVIO_PASSWORD}
     volumes:
-      - pg-envio-data:/var/lib/postgresql/data
+      - pg-shipping-data:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
@@ -222,20 +244,38 @@ services:
       timeout: 5s
       retries: 5
 
-  db-usuario:
+  db-user:
     image: postgres:16-alpine
-    container_name: smartlogix-db-usuario
+    container_name: smartlogix-db-user
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_USUARIO_DB}
       POSTGRES_USER: ${POSTGRES_USUARIO_USER}
       POSTGRES_PASSWORD: ${POSTGRES_USUARIO_PASSWORD}
     volumes:
-      - pg-usuario-data:/var/lib/postgresql/data
+      - pg-user-data:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USUARIO_USER} -d ${POSTGRES_USUARIO_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-auth:
+    image: postgres:16-alpine
+    container_name: smartlogix-db-auth
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_AUTH_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+    volumes:
+      - pg-auth-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER} -d ${POSTGRES_AUTH_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
