@@ -1,10 +1,10 @@
 import { env } from "../config/env.js";
 import { request } from "./httpClient.js";
 
-const SERVICE = "ms-pedido";
-const base = () => env.MS_PEDIDO_URL;
+const SERVICE = "order";
+const base = () => env.MS_ORDER_URL;
 
-export const msPedido = {
+export const order = {
   crear: (payload) => request(SERVICE, base(), "/pedidos", { method: "POST", body: payload }),
   getById: (id) => request(SERVICE, base(), `/pedidos/${id}`),
   getByCodigo: (codigo) => request(SERVICE, base(), `/pedidos/codigo/${codigo}`),

@@ -1,8 +1,8 @@
 # SmartLogix BFF
 
-> **Backend For Frontend** del sistema SmartLogix. Orquesta los 3 microservicios, compone respuestas para el frontend y expone una API simétrica al cliente.
+> **Backend For Frontend** del sistema SmartLogix. Orquesta los microservicios, compone respuestas para el frontend y expone una API simétrica al cliente.
 
-← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [Frontend](../../frontend/README.md) · [API Gateway](../microservices/apigateway/README.md) · [ms-pedido](../microservices/ms-pedido/README.md) · [ms-inventario](../microservices/ms-inventario/README.md) · [ms-envio](../microservices/ms-envio/README.md)
+← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [Frontend](../../frontend/README.md) · [API Gateway](../api-gateway/README.md) · [order](../order/README.md) · [inventory](../inventory/README.md) · [shipping](../shipping/README.md) · [user](../user/README.md) · [auth](../auth/README.md)
 
 ---
 
@@ -24,13 +24,15 @@
 
 El BFF es la **capa de adaptación** entre el frontend y la malla de microservicios. Implementa dos tipos de endpoints:
 
-1. **Proxy passthrough** — CRUD simple a cada MS (`/inventario/*`, `/pedidos/*`, `/envios/*`).
+1. **Proxy passthrough** — CRUD simple a cada MS (`/inventario/*`, `/pedidos/*`, `/envios/*`, `/usuarios/*`, `/auth/*`).
 2. **Compuestos / orquestados** — agregan o coordinan llamadas a varios MS:
    - `GET /dashboard` — pedidos por estado, top stock bajo, envíos en ruta
    - `GET /pedidos/:id/full` — pedido + envíos + disponibilidad por producto (con `Promise.all`)
    - `POST /checkout` — saga: crear pedido → reservar stock → crear envío (con rollback best-effort)
 
 **Stack**: Node.js 20 · Express 4 · http-proxy-middleware 3 · zod 3 · morgan.
+
+> **Convención de nombres**: internamente los módulos, variables y hostnames upstream están en inglés (`inventory`, `order`, `shipping`, `user`, `auth`). Las **rutas HTTP públicas** se mantienen en español (`/inventario`, `/pedidos`, `/envios`, `/usuarios`) para no romper el contrato con el frontend. `/auth/*` es la única nueva en inglés.
 
 ## 2. Posición en la arquitectura
 
@@ -39,16 +41,20 @@ flowchart LR
     FE[Frontend React]
     KR[KrakenD Gateway]
     BFF["BFF (este servicio)"]
-    P[ms-pedido]
-    I[ms-inventario]
-    E[ms-envio]
+    O[order]
+    I[inventory]
+    S[shipping]
+    U[user]
+    A[auth]
 
     FE -->|directo via Traefik<br/>bff.smartlogix.localhost| BFF
     FE -->|via KrakenD<br/>api.smartlogix.localhost/api/*| KR
     KR --> BFF
-    BFF --> P
+    BFF --> O
     BFF --> I
-    BFF --> E
+    BFF --> S
+    BFF --> U
+    BFF --> A
 
     classDef bff fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     class BFF bff
@@ -62,20 +68,20 @@ El BFF es alcanzable por **dos caminos** desde Traefik: directo (`bff.smartlogix
 flowchart TB
     subgraph Server["server.js (Express app)"]
         MW["middleware<br/>(morgan, json, validate, errorHandler)"]
-        Routes["routes/<br/>(health, checkout, pedidos,<br/>dashboard, proxy)"]
+        Routes["routes/<br/>(health, checkout, orders,<br/>dashboard, proxy)"]
     end
 
     subgraph Services["services/"]
         CK["checkoutService<br/>(saga + rollback)"]
         DS["dashboardService<br/>(Promise.all + .catch)"]
-        PC["pedidoComposerService<br/>(/pedidos/:id/full)"]
+        OC["orderComposerService<br/>(/pedidos/:id/full)"]
     end
 
     subgraph Clients["clients/"]
         HC["httpClient<br/>(fetch + AbortController<br/>+ UpstreamError)"]
-        MP[msPedido]
-        MI[msInventario]
-        ME[msEnvio]
+        O[order]
+        I[inventory]
+        S[shipping]
     end
 
     subgraph Schemas["schemas/"]
@@ -85,9 +91,9 @@ flowchart TB
     Routes --> Services
     Routes --> Schemas
     Services --> Clients
-    MP --> HC
-    MI --> HC
-    ME --> HC
+    O --> HC
+    I --> HC
+    S --> HC
 ```
 
 ## 4. API
@@ -101,9 +107,11 @@ flowchart TB
 | GET | `/pedidos/:id/full` | Pedido + envíos asociados + disponibilidad agregada por producto |
 | POST | `/checkout` | Orquesta crear pedido → reservar stock por ítem → crear envío |
 | **Proxy passthrough** | | |
-| ANY | `/inventario/*` | → `ms-inventario` |
-| ANY | `/pedidos/*` | → `ms-pedido` |
-| ANY | `/envios/*` | → `ms-envio` |
+| ANY | `/inventario/*` | → `inventory` |
+| ANY | `/pedidos/*` | → `order` |
+| ANY | `/envios/*` | → `shipping` |
+| ANY | `/usuarios/*` | → `user` |
+| ANY | `/auth/*` | → `auth` |
 
 ## 5. Flujo del checkout (saga)
 
@@ -114,14 +122,14 @@ sequenceDiagram
     autonumber
     participant C as Cliente
     participant B as BFF<br/>checkoutService
-    participant P as ms-pedido
-    participant I as ms-inventario
-    participant E as ms-envio
+    participant O as order
+    participant I as inventory
+    participant S as shipping
 
     C->>B: POST /checkout { idCliente, items, idBodega, envio }
     B->>B: zod.parse(body) — 400 si inválido
-    B->>P: POST /pedidos
-    P-->>B: 201 + { idPedido, codigo }
+    B->>O: POST /pedidos
+    O-->>B: 201 + { idPedido, codigo }
 
     loop por cada item del pedido
         B->>I: POST /stock/reservar<br/>(con referenciaPedido)
@@ -129,8 +137,8 @@ sequenceDiagram
     end
 
     alt todas las reservas OK
-        B->>E: POST /envios { idPedido, direccionDestino, ... }
-        E-->>B: 201 + { trackingNumber }
+        B->>S: POST /envios { idPedido, direccionDestino, ... }
+        S-->>B: 201 + { trackingNumber }
         B-->>C: 200 + { pedido, envio, reservas: [...] }
     else falla alguna reserva
         Note over B: rollback best-effort
@@ -150,8 +158,8 @@ Centralizado en `middleware/errorHandler.js`. Convierte cualquier excepción en 
 | Excepción | Status devuelto | Body |
 |---|---|---|
 | `ZodError` | 400 | `{ title, detail, errors: { campo: mensaje } }` |
-| `UpstreamError` timeout | 504 | `{ detail: "ms-X timeout (5000ms)" }` |
-| `UpstreamError` red | 502 | `{ detail: "ms-X inalcanzable: ..." }` |
+| `UpstreamError` timeout | 504 | `{ detail: "<service> timeout (5000ms)" }` |
+| `UpstreamError` red | 502 | `{ detail: "<service> inalcanzable: ..." }` |
 | `UpstreamError` status upstream | igual al upstream | propaga `body` del MS |
 | `Error` genérico | 500 | `{ detail: "Internal Server Error" }` (log completo en stderr) |
 
@@ -160,9 +168,11 @@ Centralizado en `middleware/errorHandler.js`. Convierte cualquier excepción en 
 | Variable | Default | Función |
 |---|---|---|
 | `PORT` | `3000` | Puerto HTTP del BFF |
-| `MS_INVENTARIO_URL` | `http://ms-inventario:8080` | URL base del MS de inventario |
-| `MS_PEDIDO_URL` | `http://ms-pedido:8080` | URL base del MS de pedido |
-| `MS_ENVIO_URL` | `http://ms-envio:8080` | URL base del MS de envío |
+| `MS_INVENTORY_URL` | `http://inventory:8080` | URL base del MS de inventario |
+| `MS_ORDER_URL` | `http://order:8080` | URL base del MS de pedido |
+| `MS_SHIPPING_URL` | `http://shipping:8080` | URL base del MS de envío |
+| `MS_USER_URL` | `http://user:8080` | URL base del MS de usuario |
+| `MS_AUTH_URL` | `http://auth:8081` | URL base del MS de autenticación |
 | `HTTP_TIMEOUT_MS` | `5000` | Timeout (AbortController) para cada llamada a MS |
 
 ## 8. Cómo ejecutar
@@ -203,7 +213,7 @@ curl -X POST http://bff.smartlogix.localhost/checkout \
 ## 9. Patrones aplicados
 
 - **BFF (Backend For Frontend)** — API tallada a la medida de las pantallas del operador
-- **Composite Service** — `dashboardService` y `pedidoComposerService` agregan varios MS en paralelo con `Promise.all`
+- **Composite Service** — `dashboardService` y `orderComposerService` agregan varios MS en paralelo con `Promise.all`
 - **Saga simplificada** — `checkoutService` con compensaciones best-effort
 - **Circuit-Breaker-lite** — cada llamada va envuelta en `AbortController` con timeout; agregaciones toleran fallos parciales con `.catch()`
 - **Schema Validation (zod)** — entrada validada antes de tocar los MS

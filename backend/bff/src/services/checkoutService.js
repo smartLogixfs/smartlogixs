@@ -1,12 +1,12 @@
-import { msPedido } from "../clients/msPedido.js";
-import { msInventario } from "../clients/msInventario.js";
-import { msEnvio } from "../clients/msEnvio.js";
+import { order } from "../clients/order.js";
+import { inventory } from "../clients/inventory.js";
+import { shipping } from "../clients/shipping.js";
 import { UpstreamError } from "../clients/httpClient.js";
 
 // Orquestación: crear pedido → reservar stock por ítem → crear envío.
 // Si falla la reserva, se intenta liberar las reservas ya hechas (rollback best-effort).
 export async function checkout(payload) {
-  const pedido = await msPedido.crear({
+  const pedido = await order.crear({
     idCliente: payload.idCliente,
     idMarketplace: payload.idMarketplace,
     tipo: payload.tipo,
@@ -16,7 +16,7 @@ export async function checkout(payload) {
   const reservasOk = [];
   try {
     for (const item of payload.items) {
-      await msInventario.reservar({
+      await inventory.reservar({
         idProducto: item.idProducto,
         idBodega: payload.idBodega,
         cantidad: item.cantidad,
@@ -32,7 +32,7 @@ export async function checkout(payload) {
     );
   }
 
-  const envio = await msEnvio.crear({
+  const envio = await shipping.crear({
     idPedido: pedido.idPedido,
     direccionDestino: payload.envio.direccionDestino,
     comuna: payload.envio.comuna,
@@ -46,7 +46,7 @@ export async function checkout(payload) {
 async function rollbackReservas(reservas, idBodega, referenciaPedido) {
   for (const item of reservas) {
     try {
-      await msInventario.liberar({
+      await inventory.liberar({
         idProducto: item.idProducto,
         idBodega,
         cantidad: item.cantidad,
