@@ -18,7 +18,7 @@ const restreamBody = (proxyReq, req) => {
 router.use(
   "/inventario",
   createProxyMiddleware({
-    target: env.MS_INVENTARIO_URL,
+    target: env.MS_INVENTORY_URL,
     changeOrigin: true,
     pathRewrite: { "^/inventario": "" },
     on: { proxyReq: restreamBody },
@@ -32,7 +32,7 @@ router.use(
 router.use(
   "/pedidos",
   createProxyMiddleware({
-    target: env.MS_PEDIDO_URL,
+    target: env.MS_ORDER_URL,
     changeOrigin: true,
     pathRewrite: (_path, req) => req.originalUrl,
     on: { proxyReq: restreamBody },
@@ -42,7 +42,7 @@ router.use(
 router.use(
   "/envios",
   createProxyMiddleware({
-    target: env.MS_ENVIO_URL,
+    target: env.MS_SHIPPING_URL,
     changeOrigin: true,
     pathRewrite: (_path, req) => req.originalUrl,
     on: { proxyReq: restreamBody },
@@ -52,7 +52,17 @@ router.use(
 router.use(
   "/usuarios",
   createProxyMiddleware({
-    target: env.MS_USUARIO_URL,
+    target: env.MS_USER_URL,
+    changeOrigin: true,
+    pathRewrite: (_path, req) => req.originalUrl,
+    on: { proxyReq: restreamBody },
+  })
+);
+
+router.use(
+  "/auth",
+  createProxyMiddleware({
+    target: env.MS_AUTH_URL,
     changeOrigin: true,
     pathRewrite: (_path, req) => req.originalUrl,
     on: { proxyReq: restreamBody },

@@ -1,19 +1,19 @@
-import { msPedido } from "../clients/msPedido.js";
-import { msInventario } from "../clients/msInventario.js";
-import { msEnvio } from "../clients/msEnvio.js";
+import { order } from "../clients/order.js";
+import { inventory } from "../clients/inventory.js";
+import { shipping } from "../clients/shipping.js";
 
 // GET /pedidos/:id/full → pedido + envíos asociados + disponibilidad agregada por producto.
 export async function pedidoFull(idPedido) {
-  const pedido = await msPedido.getById(idPedido);
+  const pedido = await order.getById(idPedido);
 
   const [envios, disponibilidades] = await Promise.all([
-    msEnvio.getByPedido(idPedido).catch((err) => {
+    shipping.getByPedido(idPedido).catch((err) => {
       console.error("[bff] envios upstream:", err.message);
       return [];
     }),
     Promise.all(
       pedido.items.map((it) =>
-        msInventario.disponibleTotal(it.idProducto)
+        inventory.disponibleTotal(it.idProducto)
           .then((r) => ({ idProducto: it.idProducto, disponible: r.disponible }))
           .catch(() => ({ idProducto: it.idProducto, disponible: null }))
       )

@@ -12,7 +12,7 @@ router.get("/", (_req, res) => {
     version: "0.1.0",
     endpoints: {
       compuestos: ["GET /pedidos/:id/full", "POST /checkout", "GET /dashboard"],
-      proxy: ["/inventario/*", "/pedidos/*", "/envios/*"],
+      proxy: ["/inventario/*", "/pedidos/*", "/envios/*", "/usuarios/*", "/auth/*"],
     },
   });
 });

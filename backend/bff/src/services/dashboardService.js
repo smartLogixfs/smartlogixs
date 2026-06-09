@@ -1,14 +1,14 @@
-import { msPedido } from "../clients/msPedido.js";
-import { msInventario } from "../clients/msInventario.js";
-import { msEnvio } from "../clients/msEnvio.js";
+import { order } from "../clients/order.js";
+import { inventory } from "../clients/inventory.js";
+import { shipping } from "../clients/shipping.js";
 
 const ESTADOS_PEDIDO = ["PENDIENTE", "APROBADO", "EN_PREPARACION", "ENVIADO", "ENTREGADO"];
 
 export async function dashboard() {
   const [pedidosPorEstado, stockBajo, enviosEnRuta] = await Promise.all([
     pedidosPorEstadoMap(),
-    msInventario.stockBajo().catch(() => []),
-    msEnvio.listar("EN_RUTA").catch(() => []),
+    inventory.stockBajo().catch(() => []),
+    shipping.listar("EN_RUTA").catch(() => []),
   ]);
 
   return {
@@ -28,7 +28,7 @@ export async function dashboard() {
 async function pedidosPorEstadoMap() {
   const entries = await Promise.all(
     ESTADOS_PEDIDO.map((estado) =>
-      msPedido.listar(estado)
+      order.listar(estado)
         .then((arr) => [estado, arr.length])
         .catch(() => [estado, null])
     )

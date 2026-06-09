@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { pedidoFull } from "../services/pedidoComposerService.js";
+import { pedidoFull } from "../services/orderComposerService.js";
 
 const router = Router();
 
