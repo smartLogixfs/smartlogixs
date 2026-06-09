@@ -10,10 +10,12 @@
 |---|---|
 | Frontend (React 19 + TS) | [`frontend/README.md`](frontend/README.md) |
 | BFF (Node.js 20 + Express) | [`backend/bff/README.md`](backend/bff/README.md) |
-| API Gateway (KrakenD) | [`backend/microservices/apigateway/README.md`](backend/microservices/apigateway/README.md) |
-| ms-pedido | [`backend/microservices/ms-pedido/README.md`](backend/microservices/ms-pedido/README.md) |
-| ms-inventario | [`backend/microservices/ms-inventario/README.md`](backend/microservices/ms-inventario/README.md) |
-| ms-envio | [`backend/microservices/ms-envio/README.md`](backend/microservices/ms-envio/README.md) |
+| API Gateway (KrakenD) | [`backend/api-gateway/README.md`](backend/api-gateway/README.md) |
+| ms-order | [`backend/ms-order/README.md`](backend/ms-order/README.md) |
+| ms-inventory | [`backend/ms-inventory/README.md`](backend/ms-inventory/README.md) |
+| ms-shipping | [`backend/ms-shipping/README.md`](backend/ms-shipping/README.md) |
+| ms-user | [`backend/ms-user/README.md`](backend/ms-user/README.md) |
+| ms-auth | [`backend/ms-auth/README.md`](backend/ms-auth/README.md) |
 
 
 ---
@@ -60,12 +62,12 @@ flowchart LR
     end
 
     subgraph Internal["Red privada: internal"]
-        MSPed["ms-pedido<br/>Spring Boot 4"]
-        MSInv["ms-inventario<br/>Spring Boot 4"]
-        MSEnv["ms-envio<br/>Spring Boot 4"]
-        DBPed[("db-pedido<br/>PostgreSQL 16")]
-        DBInv[("db-inventario<br/>PostgreSQL 16")]
-        DBEnv[("db-envio<br/>PostgreSQL 16")]
+        MSPed["ms-order<br/>Spring Boot 4"]
+        MSInv["ms-inventory<br/>Spring Boot 4"]
+        MSEnv["ms-shipping<br/>Spring Boot 4"]
+        DBPed[("db-order<br/>PostgreSQL 16")]
+        DBInv[("db-inventory<br/>PostgreSQL 16")]
+        DBEnv[("db-shipping<br/>PostgreSQL 16")]
     end
 
     User -->|HTTP/HTTPS| Traefik
@@ -104,12 +106,12 @@ flowchart TB
     subgraph IntNet["red: internal (internal=true, sin acceso a Internet)"]
         BB[BFF<br/><i>dual-homed</i>]
         KK[KrakenD<br/><i>dual-homed</i>]
-        P[ms-pedido]
-        I[ms-inventario]
-        E[ms-envio]
-        DP[(db-pedido)]
-        DI[(db-inventario)]
-        DE[(db-envio)]
+        P[ms-order]
+        I[ms-inventory]
+        E[ms-shipping]
+        DP[(db-order)]
+        DI[(db-inventory)]
+        DE[(db-shipping)]
     end
 
     B -.->|conecta<br/>vía interna| BB
@@ -132,8 +134,8 @@ sequenceDiagram
     participant T as Traefik (Ingress)
     participant K as KrakenD (Gateway)
     participant B as BFF
-    participant M as ms-pedido
-    participant D as db-pedido
+    participant M as ms-order
+    participant D as db-order
 
     U->>T: GET app.smartlogix.localhost/dashboard
     T->>T: Match Host header → router
@@ -161,18 +163,22 @@ sequenceDiagram
 | Gateway | **KrakenD** | API Gateway: routing `/api/*`, rate limiting, JWT validation, CORS | KrakenD v2.10 |
 | Presentación | **Frontend** | SPA del operador logístico (5 pantallas) | React 19, Vite 5, Bootstrap 5, TypeScript 6 |
 | Adaptación | **BFF** | Orquestación de MS para el frontend (saga checkout, dashboard agregado, proxy CRUD) | Node.js 20, Express 4, zod 3 |
-| Negocio | **ms-pedido** | Pedidos + máquina de estados + auditoría | Spring Boot 4, Java 25, JPA, Flyway |
-| Negocio | **ms-inventario** | Productos, bodegas, stock (con optimistic locking) | Spring Boot 4, Java 25, JPA, Flyway |
-| Negocio | **ms-envio** | Envíos, transportistas, seguimiento | Spring Boot 4, Java 25, JPA, Flyway |
-| Datos | **PostgreSQL × 3** | DB per service, aisladas en red privada | PostgreSQL 16-alpine |
+| Negocio | **ms-order** | Pedidos + máquina de estados + auditoría | Spring Boot 4, Java 25, JPA, Flyway |
+| Negocio | **ms-inventory** | Productos, bodegas, stock (con optimistic locking) | Spring Boot 4, Java 25, JPA, Flyway |
+| Negocio | **ms-shipping** | Envíos, transportistas, seguimiento | Spring Boot 4, Java 25, JPA, Flyway |
+| Negocio | **ms-user** | Usuarios y perfiles (servicio reutilizado) | Spring Boot, Java, JPA |
+| Negocio | **ms-auth** | Login, register, JWT issuer + JWKS (servicio reutilizado) | Spring Boot, Java, JPA |
+| Datos | **PostgreSQL × 5** | DB per service, aisladas en red privada | PostgreSQL 16-alpine |
 
 ### 3.1 Endpoints clave
 
 | MS | Path base | Operaciones | Detalle |
 |---|---|---|---|
-| `ms-pedido` | `/pedidos` | `POST`, `GET /{id}`, `GET /codigo/{c}`, `GET /cliente/{id}`, `GET ?estado=`, `PATCH /{id}/estado` | [README](backend/microservices/ms-pedido/) |
-| `ms-inventario` | `/productos`, `/bodegas`, `/stock` | CRUD productos/bodegas + `POST /stock/{entrada,salida,reservar,liberar}` | [README](backend/microservices/ms-inventario/) |
-| `ms-envio` | `/envios`, `/transportistas` | CRUD + `PATCH /{id}/{transportista,estado}` | [README](backend/microservices/ms-envio/) |
+| `ms-order` | `/pedidos` | `POST`, `GET /{id}`, `GET /codigo/{c}`, `GET /cliente/{id}`, `GET ?estado=`, `PATCH /{id}/estado` | [README](backend/ms-order/) |
+| `ms-inventory` | `/productos`, `/bodegas`, `/stock` | CRUD productos/bodegas + `POST /stock/{entrada,salida,reservar,liberar}` | [README](backend/ms-inventory/) |
+| `ms-shipping` | `/envios`, `/transportistas` | CRUD + `PATCH /{id}/{transportista,estado}` | [README](backend/ms-shipping/) |
+| `ms-user` | `/usuarios` | CRUD usuarios (servicio reutilizado) | [README](backend/ms-user/) |
+| `ms-auth` | `/auth` | Login, register, JWT/JWKS (servicio reutilizado) | [README](backend/ms-auth/) |
 | `BFF` | (multiple) | `GET /dashboard`, `GET /pedidos/:id/full`, `POST /checkout`, proxy CRUD | [README](backend/bff/) |
 
 ---
@@ -188,9 +194,9 @@ sequenceDiagram
     autonumber
     participant C as Cliente (Frontend)
     participant B as BFF
-    participant P as ms-pedido
-    participant I as ms-inventario
-    participant E as ms-envio
+    participant P as ms-order
+    participant I as ms-inventory
+    participant E as ms-shipping
 
     C->>B: POST /checkout { idCliente, items, idBodega, envio }
     B->>B: validar con zod
@@ -337,7 +343,7 @@ stateDiagram-v2
 | Patrón | Dónde se ve | Problema que resuelve |
 |---|---|---|
 | **Microservicios** | 3 MS Spring Boot independientes | Despliegue y evolución por dominio, sin acoplamiento de releases |
-| **Database per Service** | `db-pedido`, `db-inventario`, `db-envio` aisladas | Cada equipo evoluciona su schema sin coordinar |
+| **Database per Service** | `db-order`, `db-inventory`, `db-shipping`, `db-user`, `db-auth` aisladas | Cada equipo evoluciona su schema sin coordinar |
 | **API Gateway** | KrakenD v2.10 | Cross-cutting: rate limiting, JWT, CORS, sin contaminar los MS |
 | **Ingress separado** | Traefik v3.5 + KrakenD | TLS/routing por host (edge) separado de policy de API |
 | **Backend For Frontend** | Node.js + Express | Endpoint óptimo por pantalla, agregación, orquestación |
@@ -414,7 +420,7 @@ docker compose ps          # esperar 10 contenedores Up
 ```bash
 docker compose logs -f bff               # logs en vivo de un servicio
 docker compose up -d --build bff         # rebuild aislado
-docker compose exec db-pedido psql -U pedido -d pedido   # conectarse a una DB
+docker compose exec db-order psql -U pedido -d pedido   # conectarse a una DB
 docker compose down                      # bajar (mantiene volúmenes)
 docker compose down -v                   # bajar + borrar data
 docker compose config                    # validar sintaxis
@@ -447,11 +453,12 @@ smartlogixs/
 └── backend/
     ├── bff/                          # Node.js 20 + Express + zod
     │   └── src/{routes,services,clients,schemas,middleware}/
-    └── microservices/
-        ├── apigateway/               # KrakenD declarativo
-        ├── ms-pedido/                # Spring Boot 4
-        ├── ms-inventario/            # Spring Boot 4
-        └── ms-envio/                 # Spring Boot 4
+    ├── api-gateway/                  # KrakenD declarativo
+    ├── ms-order/                     # Spring Boot 4 (pedidos)
+    ├── ms-inventory/                 # Spring Boot 4 (inventario)
+    ├── ms-shipping/                  # Spring Boot 4 (envíos)
+    ├── ms-user/                      # Spring Boot (usuarios — reutilizado)
+    └── ms-auth/                      # Spring Boot (auth/JWT — reutilizado)
 ```
 
 ---

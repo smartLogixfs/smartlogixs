@@ -85,17 +85,17 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
-      MS_INVENTORY_URL: http://inventory:8080
-      MS_ORDER_URL: http://order:8080
-      MS_SHIPPING_URL: http://shipping:8080
-      MS_USER_URL: http://user:8080
-      MS_AUTH_URL: http://auth:8081
+      MS_INVENTORY_URL: http://ms-inventory:8080
+      MS_ORDER_URL: http://ms-order:8080
+      MS_SHIPPING_URL: http://ms-shipping:8080
+      MS_USER_URL: http://ms-user:8080
+      MS_AUTH_URL: http://ms-auth:8081
     depends_on:
-      - inventory
-      - order
-      - shipping
-      - user
-      - auth
+      - ms-inventory
+      - ms-order
+      - ms-shipping
+      - ms-user
+      - ms-auth
     networks:
       - internal
       - web
@@ -109,10 +109,10 @@ services:
   # ===========================================================
   # Capa de negocio - Microservicios Spring Boot
   # ===========================================================
-  inventory:
+  ms-inventory:
     build:
-      context: ./backend/inventory
-    container_name: smartlogix-inventory
+      context: ./backend/ms-inventory
+    container_name: smartlogix-ms-inventory
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
@@ -124,26 +124,26 @@ services:
     networks:
       - internal
 
-  order:
+  ms-order:
     build:
-      context: ./backend/order
-    container_name: smartlogix-order
+      context: ./backend/ms-order
+    container_name: smartlogix-ms-order
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-order:5432/${POSTGRES_PEDIDO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PEDIDO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PEDIDO_PASSWORD}
-      MS_INVENTORY_URL: http://inventory:8080
+      MS_INVENTORY_URL: http://ms-inventory:8080
     depends_on:
       - db-order
     networks:
       - internal
 
-  shipping:
+  ms-shipping:
     build:
-      context: ./backend/shipping
-    container_name: smartlogix-shipping
+      context: ./backend/ms-shipping
+    container_name: smartlogix-ms-shipping
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
@@ -155,10 +155,10 @@ services:
     networks:
       - internal
 
-  user:
+  ms-user:
     build:
-      context: ./backend/user
-    container_name: smartlogix-user
+      context: ./backend/ms-user
+    container_name: smartlogix-ms-user
     restart: unless-stopped
     environment:
       SERVER_PORT: 8080
@@ -170,10 +170,10 @@ services:
     networks:
       - internal
 
-  auth:
+  ms-auth:
     build:
-      context: ./backend/auth
-    container_name: smartlogix-auth
+      context: ./backend/ms-auth
+    container_name: smartlogix-ms-auth
     restart: unless-stopped
     environment:
       SERVER_PORT: 8081
@@ -181,7 +181,7 @@ services:
       DB_USERNAME: ${POSTGRES_AUTH_USER}
       DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: http://auth:8081
+      JWT_ISSUER: http://ms-auth:8081
     depends_on:
       - db-auth
     networks:
