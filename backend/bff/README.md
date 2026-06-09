@@ -2,7 +2,7 @@
 
 > **Backend For Frontend** del sistema SmartLogix. Orquesta los microservicios, compone respuestas para el frontend y expone una API simétrica al cliente.
 
-← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [Frontend](../../frontend/README.md) · [API Gateway](../api-gateway/README.md) · [order](../order/README.md) · [inventory](../inventory/README.md) · [shipping](../shipping/README.md) · [user](../user/README.md) · [auth](../auth/README.md)
+← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [Frontend](../../frontend/README.md) · [API Gateway](../api-gateway/README.md) · [ms-order](../ms-order/README.md) · [ms-inventory](../ms-inventory/README.md) · [ms-shipping](../ms-shipping/README.md) · [ms-user](../ms-user/README.md) · [ms-auth](../ms-auth/README.md)
 
 ---
 
@@ -41,11 +41,11 @@ flowchart LR
     FE[Frontend React]
     KR[KrakenD Gateway]
     BFF["BFF (este servicio)"]
-    O[order]
-    I[inventory]
-    S[shipping]
-    U[user]
-    A[auth]
+    O[ms-order]
+    I[ms-inventory]
+    S[ms-shipping]
+    U[ms-user]
+    A[ms-auth]
 
     FE -->|directo via Traefik<br/>bff.smartlogix.localhost| BFF
     FE -->|via KrakenD<br/>api.smartlogix.localhost/api/*| KR
@@ -107,11 +107,11 @@ flowchart TB
 | GET | `/pedidos/:id/full` | Pedido + envíos asociados + disponibilidad agregada por producto |
 | POST | `/checkout` | Orquesta crear pedido → reservar stock por ítem → crear envío |
 | **Proxy passthrough** | | |
-| ANY | `/inventario/*` | → `inventory` |
-| ANY | `/pedidos/*` | → `order` |
-| ANY | `/envios/*` | → `shipping` |
-| ANY | `/usuarios/*` | → `user` |
-| ANY | `/auth/*` | → `auth` |
+| ANY | `/inventario/*` | → `ms-inventory` |
+| ANY | `/pedidos/*` | → `ms-order` |
+| ANY | `/envios/*` | → `ms-shipping` |
+| ANY | `/usuarios/*` | → `ms-user` |
+| ANY | `/auth/*` | → `ms-auth` |
 
 ## 5. Flujo del checkout (saga)
 
@@ -122,9 +122,9 @@ sequenceDiagram
     autonumber
     participant C as Cliente
     participant B as BFF<br/>checkoutService
-    participant O as order
-    participant I as inventory
-    participant S as shipping
+    participant O as ms-order
+    participant I as ms-inventory
+    participant S as ms-shipping
 
     C->>B: POST /checkout { idCliente, items, idBodega, envio }
     B->>B: zod.parse(body) — 400 si inválido
@@ -168,11 +168,11 @@ Centralizado en `middleware/errorHandler.js`. Convierte cualquier excepción en 
 | Variable | Default | Función |
 |---|---|---|
 | `PORT` | `3000` | Puerto HTTP del BFF |
-| `MS_INVENTORY_URL` | `http://inventory:8080` | URL base del MS de inventario |
-| `MS_ORDER_URL` | `http://order:8080` | URL base del MS de pedido |
-| `MS_SHIPPING_URL` | `http://shipping:8080` | URL base del MS de envío |
-| `MS_USER_URL` | `http://user:8080` | URL base del MS de usuario |
-| `MS_AUTH_URL` | `http://auth:8081` | URL base del MS de autenticación |
+| `MS_INVENTORY_URL` | `http://ms-inventory:8080` | URL base del MS de inventario |
+| `MS_ORDER_URL` | `http://ms-order:8080` | URL base del MS de pedido |
+| `MS_SHIPPING_URL` | `http://ms-shipping:8080` | URL base del MS de envío |
+| `MS_USER_URL` | `http://ms-user:8080` | URL base del MS de usuario |
+| `MS_AUTH_URL` | `http://ms-auth:8081` | URL base del MS de autenticación |
 | `HTTP_TIMEOUT_MS` | `5000` | Timeout (AbortController) para cada llamada a MS |
 
 ## 8. Cómo ejecutar
