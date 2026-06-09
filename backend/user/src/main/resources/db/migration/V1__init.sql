@@ -1,0 +1,10 @@
+CREATE TABLE usuarios (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    nombre VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    telefono VARCHAR(255) NOT NULL,
+    direccion VARCHAR(255) NOT NULL,
+    region VARCHAR(255) NOT NULL,
+    comuna VARCHAR(255) NOT NULL
+);
