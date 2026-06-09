@@ -224,7 +224,7 @@ Generar un MS nuevo es un proceso de **3 pasos**:
 ```bash
 cp -r backend/microservices/ms-pedido backend/microservices/ms-nuevo
 # 1. Renombrar settings.gradle: rootProject.name = 'nuevo'
-# 2. Renombrar package: cl.smartlogix.pedido -> cl.smartlogix.nuevo
+# 2. Renombrar package: cl.smartlogix.order -> cl.smartlogix.nuevo
 # 3. Editar application.properties: spring.application.name=nuevo
 ```
 

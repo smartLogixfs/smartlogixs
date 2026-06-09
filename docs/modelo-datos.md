@@ -249,16 +249,16 @@ Estos campos identifican entidades de OTRO microservicio. No hay constraint que 
 
 | Entidad JPA | Tabla SQL | Script Flyway |
 |---|---|---|
-| `cl.smartlogix.inventario.model.Bodega` | `bodegas` | `ms-inventario/.../V1__init_schema.sql` |
-| `cl.smartlogix.inventario.model.Producto` | `productos` | idem |
-| `cl.smartlogix.inventario.model.Stock` | `stock` | idem |
-| `cl.smartlogix.inventario.model.MovimientoStock` | `movimientos_stock` | idem |
-| `cl.smartlogix.pedido.model.Pedido` | `pedidos` | `ms-pedido/.../V1__init_schema.sql` |
-| `cl.smartlogix.pedido.model.PedidoItem` | `pedido_items` | idem |
-| `cl.smartlogix.pedido.model.PedidoHistorial` | `pedido_historial` | idem |
-| `cl.smartlogix.envio.model.Transportista` | `transportistas` | `ms-envio/envio/.../V1__init_schema.sql` |
-| `cl.smartlogix.envio.model.Envio` | `envios` | idem |
-| `cl.smartlogix.envio.model.EnvioSeguimiento` | `envio_seguimiento` | idem |
+| `cl.smartlogix.inventory.model.Bodega` | `bodegas` | `ms-inventario/.../V1__init_schema.sql` |
+| `cl.smartlogix.inventory.model.Producto` | `productos` | idem |
+| `cl.smartlogix.inventory.model.Stock` | `stock` | idem |
+| `cl.smartlogix.inventory.model.MovimientoStock` | `movimientos_stock` | idem |
+| `cl.smartlogix.order.model.Pedido` | `pedidos` | `ms-pedido/.../V1__init_schema.sql` |
+| `cl.smartlogix.order.model.PedidoItem` | `pedido_items` | idem |
+| `cl.smartlogix.order.model.PedidoHistorial` | `pedido_historial` | idem |
+| `cl.smartlogix.shipping.model.Transportista` | `transportistas` | `ms-envio/envio/.../V1__init_schema.sql` |
+| `cl.smartlogix.shipping.model.Envio` | `envios` | idem |
+| `cl.smartlogix.shipping.model.EnvioSeguimiento` | `envio_seguimiento` | idem |
 
 ---
 
