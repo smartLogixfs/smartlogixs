@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/name: bff
+    app.kubernetes.io/part-of: smartlogix
+    app.kubernetes.io/component: bff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bff
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bff
+        app.kubernetes.io/part-of: smartlogix
+        app.kubernetes.io/component: bff
+    spec:
+      containers:
+        - name: bff
+          image: smartlogix/bff:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: MS_INVENTORY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_INVENTORY_URL
+            - name: MS_ORDER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_ORDER_URL
+            - name: MS_SHIPPING_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_SHIPPING_URL
+            - name: MS_USER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_USER_URL
+            - name: MS_AUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_AUTH_URL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi

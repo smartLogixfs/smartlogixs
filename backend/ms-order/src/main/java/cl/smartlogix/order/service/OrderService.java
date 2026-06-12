@@ -1,9 +1,9 @@
 package cl.smartlogix.order.service;
 
-import cl.smartlogix.order.dto.ActualizarEstadoRequest;
+import cl.smartlogix.order.dto.UpdateOrderState;
 import cl.smartlogix.order.dto.CreateOrderRequest;
 import cl.smartlogix.order.dto.OrderDto;
-import cl.smartlogix.order.model.EstadoPedido;
+import cl.smartlogix.order.model.OrderStatus;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ public interface OrderService {
     OrderDto findById(Long id);
     OrderDto findByCodigo(String codigo);
     List<OrderDto> findAll();
-    List<OrderDto> findByEstado(EstadoPedido estado);
+    List<OrderDto> findByEstado(OrderStatus estado);
     List<OrderDto> findByCliente(String idCliente);
-    OrderDto cambiarEstado(Long id, ActualizarEstadoRequest req);
+    OrderDto cambiarEstado(Long id, UpdateOrderState req);
 }

@@ -1,6 +1,6 @@
 package cl.smartlogix.order.dto;
 
-import cl.smartlogix.order.model.Order;
+import cl.smartlogix.order.model.OrderItem;
 
 import java.math.BigDecimal;
 

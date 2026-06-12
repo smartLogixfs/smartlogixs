@@ -1,7 +1,7 @@
 package cl.smartlogix.order.service;
 
-import cl.smartlogix.order.dto.ActualizarEstadoRequest;
-import cl.smartlogix.order.dto.CrearPedidoRequest;
+import cl.smartlogix.order.dto.UpdateOrderState;
+import cl.smartlogix.order.dto.CreateOrderRequest;
 import cl.smartlogix.order.dto.OrderDto;
 import cl.smartlogix.order.model.*;
 import cl.smartlogix.order.repository.OrderRepository;
@@ -26,36 +26,36 @@ public class OrderServiceImpl implements OrderService {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     // Máquina de estados del pedido (no permite saltos arbitrarios)
-    private static final Map<EstadoPedido, Set<EstadoPedido>> TRANSICIONES = Map.of(
-        EstadoPedido.PENDIENTE,      Set.of(EstadoPedido.APROBADO, EstadoPedido.RECHAZADO, EstadoPedido.CANCELADO),
-        EstadoPedido.APROBADO,       Set.of(EstadoPedido.EN_PREPARACION, EstadoPedido.CANCELADO),
-        EstadoPedido.EN_PREPARACION, Set.of(EstadoPedido.ENVIADO, EstadoPedido.CANCELADO),
-        EstadoPedido.ENVIADO,        Set.of(EstadoPedido.ENTREGADO),
-        EstadoPedido.ENTREGADO,      Set.of(),
-        EstadoPedido.RECHAZADO,      Set.of(),
-        EstadoPedido.CANCELADO,      Set.of()
+    private static final Map<OrderStatus, Set<OrderStatus>> TRANSICIONES = Map.of(
+        OrderStatus.PENDIENTE,      Set.of(OrderStatus.APROBADO, OrderStatus.RECHAZADO, OrderStatus.CANCELADO),
+        OrderStatus.APROBADO,       Set.of(OrderStatus.EN_PREPARACION, OrderStatus.CANCELADO),
+        OrderStatus.EN_PREPARACION, Set.of(OrderStatus.ENVIADO, OrderStatus.CANCELADO),
+        OrderStatus.ENVIADO,        Set.of(OrderStatus.ENTREGADO),
+        OrderStatus.ENTREGADO,      Set.of(),
+        OrderStatus.RECHAZADO,      Set.of(),
+        OrderStatus.CANCELADO,      Set.of()
     );
 
     private final OrderRepository repository;
 
     @Override
-    public OrderDto crear(CrearPedidoRequest req) {
+    public OrderDto crear(CreateOrderRequest req) {
         if (req.items() == null || req.items().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El pedido debe tener al menos un ítem");
         }
 
-        Pedido pedido = Pedido.builder()
+        Order pedido = Order.builder()
             .codigo(generarCodigo())
-            .tipo(req.tipo() != null ? req.tipo() : TipoPedido.ESTANDAR)
-            .estado(EstadoPedido.PENDIENTE)
+            .tipo(req.tipo() != null ? req.tipo() : OrderType.ESTANDAR)
+            .estado(OrderStatus.PENDIENTE)
             .idCliente(req.idCliente())
             .idMarketplace(req.idMarketplace())
             .build();
 
         BigDecimal subtotal = BigDecimal.ZERO;
-        for (CrearPedidoRequest.ItemRequest it : req.items()) {
+        for (CreateOrderRequest.ItemRequest it : req.items()) {
             BigDecimal sub = it.precioUnitario().multiply(BigDecimal.valueOf(it.cantidad()));
-            PedidoItem item = PedidoItem.builder()
+            OrderItem item = OrderItem.builder()
                 .idProducto(it.idProducto())
                 .sku(it.sku())
                 .cantidad(it.cantidad())
@@ -70,9 +70,9 @@ public class OrderServiceImpl implements OrderService {
         pedido.setImpuesto(impuesto);
         pedido.setTotal(subtotal.add(impuesto).setScale(2, RoundingMode.HALF_UP));
 
-        pedido.addHistorial(PedidoHistorial.builder()
+        pedido.addHistorial(OrderHistory.builder()
             .estadoAnterior(null)
-            .estadoNuevo(EstadoPedido.PENDIENTE)
+            .estadoNuevo(OrderStatus.PENDIENTE)
             .motivo("Pedido creado")
             .build());
 
@@ -88,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDto findByCodigo(String codigo) {
-        Pedido p = repository.findByCodigo(codigo)
+        Order p = repository.findByCodigo(codigo)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido no encontrado: " + codigo));
         return OrderDto.from(p);
     }
@@ -101,7 +101,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderDto> findByEstado(EstadoPedido estado) {
+    public List<OrderDto> findByEstado(OrderStatus estado) {
         return repository.findByEstado(estado).stream().map(OrderDto::from).toList();
     }
 
@@ -112,10 +112,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderDto cambiarEstado(Long id, ActualizarEstadoRequest req) {
-        Pedido pedido = buscar(id);
-        EstadoPedido actual = pedido.getEstado();
-        EstadoPedido nuevo = req.estado();
+    public OrderDto cambiarEstado(Long id, UpdateOrderState req) {
+        Order pedido = buscar(id);
+        OrderStatus actual = pedido.getEstado();
+        OrderStatus nuevo = req.estado();
 
         if (!TRANSICIONES.getOrDefault(actual, Set.of()).contains(nuevo)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -123,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         pedido.setEstado(nuevo);
-        pedido.addHistorial(PedidoHistorial.builder()
+        pedido.addHistorial(OrderHistory.builder()
             .estadoAnterior(actual)
             .estadoNuevo(nuevo)
             .motivo(req.motivo())
@@ -132,7 +132,7 @@ public class OrderServiceImpl implements OrderService {
         return OrderDto.from(repository.save(pedido));
     }
 
-    private Pedido buscar(Long id) {
+    private Order buscar(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido no encontrado: " + id));
     }

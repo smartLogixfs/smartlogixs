@@ -1,6 +1,6 @@
 package cl.smartlogix.inventory.dto;
 
-import cl.smartlogix.inventory.model.Bodega;
+import cl.smartlogix.inventory.model.Warehouse;
 
 public record WarehouseDto(
     Long idBodega,
@@ -8,7 +8,7 @@ public record WarehouseDto(
     String ubicacion,
     Boolean activo
 ) {
-    public static WarehouseDto from(Bodega b) {
+    public static WarehouseDto from(Warehouse b) {
         return new WarehouseDto(
             b.getIdBodega(),
             b.getNombre(),

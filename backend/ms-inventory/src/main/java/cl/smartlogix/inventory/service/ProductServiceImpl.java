@@ -1,10 +1,10 @@
 package cl.smartlogix.inventory.service;
 
-import cl.smartlogix.inventory.dto.ActualizarProductoRequest;
-import cl.smartlogix.inventory.dto.CrearProductoRequest;
+import cl.smartlogix.inventory.dto.UpdateProductRequest;
+import cl.smartlogix.inventory.dto.CreateProductRequest;
 import cl.smartlogix.inventory.dto.ProductDto;
-import cl.smartlogix.inventory.model.Producto;
-import cl.smartlogix.inventory.repository.ProductoRepository;
+import cl.smartlogix.inventory.model.Product;
+import cl.smartlogix.inventory.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,14 +18,14 @@ import java.util.List;
 @Transactional
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductoRepository repository;
+    private final ProductRepository repository;
 
     @Override
-    public ProductDto crear(CrearProductoRequest req) {
+    public ProductDto crear(CreateProductRequest req) {
         if (repository.existsBySku(req.sku())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "SKU ya existe: " + req.sku());
         }
-        Producto p = Producto.builder()
+        Product p = Product.builder()
             .sku(req.sku())
             .nombre(req.nombre())
             .descripcion(req.descripcion())
@@ -44,7 +44,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductDto findBySku(String sku) {
-        Producto p = repository.findBySku(sku)
+        Product p = repository.findBySku(sku)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + sku));
         return ProductDto.from(p);
     }
@@ -56,8 +56,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductDto actualizar(Long id, ActualizarProductoRequest req) {
-        Producto p = buscar(id);
+    public ProductDto actualizar(Long id, UpdateProductRequest req) {
+        Product p = buscar(id);
         if (req.nombre() != null)      p.setNombre(req.nombre());
         if (req.descripcion() != null) p.setDescripcion(req.descripcion());
         if (req.precio() != null)      p.setPrecio(req.precio());
@@ -65,7 +65,7 @@ public class ProductServiceImpl implements ProductService {
         return ProductDto.from(repository.save(p));
     }
 
-    private Producto buscar(Long id) {
+    private Product buscar(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + id));
     }

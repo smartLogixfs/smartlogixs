@@ -1,7 +1,7 @@
 package cl.smartlogix.shipping.dto;
 
-import cl.smartlogix.shipping.model.Envio;
-import cl.smartlogix.shipping.model.EstadoEnvio;
+import cl.smartlogix.shipping.model.Shipment;
+import cl.smartlogix.shipping.model.ShipmentState;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -13,7 +13,7 @@ public record ShipmentDto(
     Long idTransportista,
     String transportistaNombre,
     String trackingNumber,
-    EstadoEnvio estado,
+    ShipmentState estado,
     String direccionDestino,
     String comuna,
     String region,
@@ -23,7 +23,7 @@ public record ShipmentDto(
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
-    public static ShipmentDto from(Envio e) {
+    public static ShipmentDto from(Shipment e) {
         return new ShipmentDto(
             e.getIdEnvio(),
             e.getIdPedido(),

@@ -1,9 +1,9 @@
 package cl.smartlogix.inventory.service;
 
-import cl.smartlogix.inventory.dto.CrearBodegaRequest;
+import cl.smartlogix.inventory.dto.CreateWarehouseRequest;
 import cl.smartlogix.inventory.dto.WarehouseDto;
-import cl.smartlogix.inventory.model.Bodega;
-import cl.smartlogix.inventory.repository.BodegaRepository;
+import cl.smartlogix.inventory.model.Warehouse;
+import cl.smartlogix.inventory.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,11 +17,11 @@ import java.util.List;
 @Transactional
 public class WarehouseServiceImpl implements WarehouseService {
 
-    private final BodegaRepository repository;
+    private final WarehouseRepository repository;
 
     @Override
-    public WarehouseDto crear(CrearBodegaRequest req) {
-        Bodega b = Bodega.builder()
+    public WarehouseDto crear(CreateWarehouseRequest req) {
+        Warehouse b = Warehouse.builder()
             .nombre(req.nombre())
             .ubicacion(req.ubicacion())
             .activo(Boolean.TRUE)

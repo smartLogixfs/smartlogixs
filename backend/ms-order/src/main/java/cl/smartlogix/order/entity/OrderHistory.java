@@ -23,15 +23,15 @@ public class OrderHistory {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_pedido", nullable = false)
-    private Pedido pedido;
+    private Order pedido;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_anterior", length = 20)
-    private EstadoPedido estadoAnterior;
+    private OrderStatus estadoAnterior;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_nuevo", nullable = false, length = 20)
-    private EstadoPedido estadoNuevo;
+    private OrderStatus estadoNuevo;
 
     @Column(length = 255)
     private String motivo;

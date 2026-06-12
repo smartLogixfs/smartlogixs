@@ -1,17 +1,17 @@
 package cl.smartlogix.shipping.service;
 
-import cl.smartlogix.shipping.dto.ActualizarEstadoEnvioRequest;
-import cl.smartlogix.shipping.dto.AsignarTransportistaRequest;
-import cl.smartlogix.shipping.dto.CrearEnvioRequest;
+import cl.smartlogix.shipping.dto.UpdateShipmentRStatusRequest;
+import cl.smartlogix.shipping.dto.AssingCarierRequest;
+import cl.smartlogix.shipping.dto.CreateShipmentRequest;
 import cl.smartlogix.shipping.dto.ShipmentDto;
 import cl.smartlogix.shipping.dto.ShipmentTrackingDto;
-import cl.smartlogix.shipping.model.Envio;
-import cl.smartlogix.shipping.model.EnvioSeguimiento;
-import cl.smartlogix.shipping.model.EstadoEnvio;
-import cl.smartlogix.shipping.model.Transportista;
-import cl.smartlogix.shipping.repository.EnvioRepository;
-import cl.smartlogix.shipping.repository.EnvioSeguimientoRepository;
-import cl.smartlogix.shipping.repository.TransportistaRepository;
+import cl.smartlogix.shipping.model.Shipment;
+import cl.smartlogix.shipping.model.ShipmentTracking;
+import cl.smartlogix.shipping.model.ShipmentState;
+import cl.smartlogix.shipping.model.Carrier;
+import cl.smartlogix.shipping.repository.ShipmentRepository;
+import cl.smartlogix.shipping.repository.ShipmentTrackingRepository;
+import cl.smartlogix.shipping.repository.CarrierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,31 +34,31 @@ public class ShipmentServiceImpl implements ShipmentService {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     // Máquina de estados del envío
-    private static final Map<EstadoEnvio, Set<EstadoEnvio>> TRANSICIONES = Map.of(
-        EstadoEnvio.CREADO,     Set.of(EstadoEnvio.ASIGNADO, EstadoEnvio.INCIDENCIA),
-        EstadoEnvio.ASIGNADO,   Set.of(EstadoEnvio.EN_RUTA, EstadoEnvio.INCIDENCIA),
-        EstadoEnvio.EN_RUTA,    Set.of(EstadoEnvio.ENTREGADO, EstadoEnvio.INCIDENCIA),
-        EstadoEnvio.INCIDENCIA, Set.of(EstadoEnvio.EN_RUTA, EstadoEnvio.ENTREGADO),
-        EstadoEnvio.ENTREGADO,  Set.of()
+    private static final Map<ShipmentState, Set<ShipmentState>> TRANSICIONES = Map.of(
+        ShipmentState.CREADO,     Set.of(ShipmentState.ASIGNADO, ShipmentState.INCIDENCIA),
+        ShipmentState.ASIGNADO,   Set.of(ShipmentState.EN_RUTA, ShipmentState.INCIDENCIA),
+        ShipmentState.EN_RUTA,    Set.of(ShipmentState.ENTREGADO, ShipmentState.INCIDENCIA),
+        ShipmentState.INCIDENCIA, Set.of(ShipmentState.EN_RUTA, ShipmentState.ENTREGADO),
+        ShipmentState.ENTREGADO,  Set.of()
     );
 
-    private final EnvioRepository envioRepository;
-    private final TransportistaRepository transportistaRepository;
-    private final EnvioSeguimientoRepository seguimientoRepository;
+    private final ShipmentRepository envioRepository;
+    private final CarrierRepository transportistaRepository;
+    private final ShipmentTrackingRepository seguimientoRepository;
 
     @Override
-    public ShipmentDto crear(CrearEnvioRequest req) {
-        Envio envio = Envio.builder()
+    public ShipmentDto crear(CreateShipmentRequest req) {
+        Shipment envio = Shipment.builder()
             .idPedido(req.idPedido())
-            .estado(EstadoEnvio.CREADO)
+            .estado(ShipmentState.CREADO)
             .direccionDestino(req.direccionDestino())
             .comuna(req.comuna())
             .region(req.region())
             .fechaEstimada(req.fechaEstimada())
             .trackingNumber(generarTracking())
             .build();
-        envio.addSeguimiento(EnvioSeguimiento.builder()
-            .estado(EstadoEnvio.CREADO)
+        envio.addSeguimiento(ShipmentTracking.builder()
+            .estado(ShipmentState.CREADO)
             .comentario("Envío creado")
             .build());
         return ShipmentDto.from(envioRepository.save(envio));
@@ -73,7 +73,7 @@ public class ShipmentServiceImpl implements ShipmentService {
     @Override
     @Transactional(readOnly = true)
     public ShipmentDto findByTracking(String trackingNumber) {
-        Envio e = envioRepository.findByTrackingNumber(trackingNumber)
+        Shipment e = envioRepository.findByTrackingNumber(trackingNumber)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tracking no encontrado: " + trackingNumber));
         return ShipmentDto.from(e);
     }
@@ -92,7 +92,7 @@ public class ShipmentServiceImpl implements ShipmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShipmentDto> findByEstado(EstadoEnvio estado) {
+    public List<ShipmentDto> findByEstado(ShipmentState estado) {
         return envioRepository.findByEstado(estado).stream().map(ShipmentDto::from).toList();
     }
 
@@ -104,13 +104,13 @@ public class ShipmentServiceImpl implements ShipmentService {
     }
 
     @Override
-    public ShipmentDto asignarTransportista(Long idEnvio, AsignarTransportistaRequest req) {
-        Envio envio = buscar(idEnvio);
-        if (envio.getEstado() != EstadoEnvio.CREADO) {
+    public ShipmentDto asignarTransportista(Long idEnvio, AssingCarierRequest req) {
+        Shipment envio = buscar(idEnvio);
+        if (envio.getEstado() != ShipmentState.CREADO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Solo se puede asignar transportista en estado CREADO (actual: " + envio.getEstado() + ")");
         }
-        Transportista t = transportistaRepository.findById(req.idTransportista())
+        Carrier t = transportistaRepository.findById(req.idTransportista())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "Transportista no encontrado: " + req.idTransportista()));
         if (!Boolean.TRUE.equals(t.getActivo())) {
@@ -118,19 +118,19 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
 
         envio.setTransportista(t);
-        envio.setEstado(EstadoEnvio.ASIGNADO);
-        envio.addSeguimiento(EnvioSeguimiento.builder()
-            .estado(EstadoEnvio.ASIGNADO)
+        envio.setEstado(ShipmentState.ASIGNADO);
+        envio.addSeguimiento(ShipmentTracking.builder()
+            .estado(ShipmentState.ASIGNADO)
             .comentario("Transportista asignado: " + t.getNombre())
             .build());
         return ShipmentDto.from(envioRepository.save(envio));
     }
 
     @Override
-    public ShipmentDto cambiarEstado(Long idEnvio, ActualizarEstadoEnvioRequest req) {
-        Envio envio = buscar(idEnvio);
-        EstadoEnvio actual = envio.getEstado();
-        EstadoEnvio nuevo = req.estado();
+    public ShipmentDto cambiarEstado(Long idEnvio, UpdateShipmentRStatusRequest req) {
+        Shipment envio = buscar(idEnvio);
+        ShipmentState actual = envio.getEstado();
+        ShipmentState nuevo = req.estado();
 
         if (!TRANSICIONES.getOrDefault(actual, Set.of()).contains(nuevo)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -138,10 +138,10 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
 
         envio.setEstado(nuevo);
-        if (nuevo == EstadoEnvio.ENTREGADO) {
+        if (nuevo == ShipmentState.ENTREGADO) {
             envio.setFechaEntrega(OffsetDateTime.now());
         }
-        envio.addSeguimiento(EnvioSeguimiento.builder()
+        envio.addSeguimiento(ShipmentTracking.builder()
             .estado(nuevo)
             .ubicacion(req.ubicacion())
             .comentario(req.comentario())
@@ -149,7 +149,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return ShipmentDto.from(envioRepository.save(envio));
     }
 
-    private Envio buscar(Long id) {
+    private Shipment buscar(Long id) {
         return envioRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Envío no encontrado: " + id));
     }

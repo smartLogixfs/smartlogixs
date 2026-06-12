@@ -23,11 +23,11 @@ public class ShipmentTracking {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_envio", nullable = false)
-    private Envio envio;
+    private Shipment envio;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoEnvio estado;
+    private ShipmentState estado;
 
     @Column(length = 255)
     private String ubicacion;
