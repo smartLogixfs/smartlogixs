@@ -23,7 +23,7 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_pedido", nullable = false)
-    private Pedido pedido;
+    private Order pedido;
 
     /** ID lógico del producto en ms-inventario — NO es FK física. */
     @Column(name = "id_producto", nullable = false)

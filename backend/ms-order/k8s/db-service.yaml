@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-order
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/name: db-order
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: db-order
+  ports:
+    - name: pg
+      port: 5432
+      targetPort: pg

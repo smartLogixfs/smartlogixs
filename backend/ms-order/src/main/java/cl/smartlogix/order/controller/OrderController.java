@@ -1,9 +1,9 @@
 package cl.smartlogix.order.controller;
 
-import cl.smartlogix.order.dto.ActualizarEstadoRequest;
-import cl.smartlogix.order.dto.CrearPedidoRequest;
+import cl.smartlogix.order.dto.UpdateOrderState;
+import cl.smartlogix.order.dto.CreateOrderRequest;
 import cl.smartlogix.order.dto.OrderDto;
-import cl.smartlogix.order.model.EstadoPedido;
+import cl.smartlogix.order.model.OrderStatus;
 import cl.smartlogix.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class OrderController {
     private final OrderService service;
 
     @PostMapping
-    public ResponseEntity<OrderDto> crear(@Valid @RequestBody CrearPedidoRequest req) {
+    public ResponseEntity<OrderDto> crear(@Valid @RequestBody CreateOrderRequest req) {
         OrderDto creado = service.crear(req);
         return ResponseEntity
             .created(URI.create("/pedidos/" + creado.idPedido()))
@@ -46,14 +46,14 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> listar(@RequestParam(required = false) EstadoPedido estado) {
+    public ResponseEntity<List<OrderDto>> listar(@RequestParam(required = false) OrderStatus estado) {
         List<OrderDto> data = (estado == null) ? service.findAll() : service.findByEstado(estado);
         return ResponseEntity.ok(data);
     }
 
     @PatchMapping("/{id}/estado")
     public ResponseEntity<OrderDto> cambiarEstado(@PathVariable Long id,
-                                                  @Valid @RequestBody ActualizarEstadoRequest req) {
+                                                  @Valid @RequestBody UpdateOrderState req) {
         return ResponseEntity.ok(service.cambiarEstado(id, req));
     }
 }

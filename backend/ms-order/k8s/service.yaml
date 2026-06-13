@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-order
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/name: ms-order
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ms-order
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

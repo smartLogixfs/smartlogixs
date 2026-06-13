@@ -31,7 +31,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoPedido estado = EstadoPedido.PENDIENTE;
+    private OrderStatus estado = OrderStatus.PENDIENTE;
 
     /** ID lógico del cliente (no FK física). */
     @Column(name = "id_cliente", nullable = false, length = 64)

@@ -1,6 +1,6 @@
 package cl.smartlogix.inventory.service;
 
-import cl.smartlogix.inventory.dto.MovimientoRequest;
+import cl.smartlogix.inventory.dto.StockMovementRequest;
 import cl.smartlogix.inventory.dto.StockDto;
 import cl.smartlogix.inventory.dto.StockMovementDto;
 
@@ -13,8 +13,8 @@ public interface StockService {
     int disponibleTotal(Long idProducto);
     List<StockMovementDto> historial(Long idStock);
 
-    StockDto entrada(MovimientoRequest req);
-    StockDto salida(MovimientoRequest req);
-    StockDto reservar(MovimientoRequest req);
-    StockDto liberar(MovimientoRequest req);
+    StockDto entrada(StockMovementRequest req);
+    StockDto salida(StockMovementRequest req);
+    StockDto reservar(StockMovementRequest req);
+    StockDto liberar(StockMovementRequest req);
 }

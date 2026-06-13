@@ -1,9 +1,9 @@
 package cl.smartlogix.shipping.service;
 
 import cl.smartlogix.shipping.dto.CarrierDto;
-import cl.smartlogix.shipping.dto.CrearTransportistaRequest;
-import cl.smartlogix.shipping.model.Transportista;
-import cl.smartlogix.shipping.repository.TransportistaRepository;
+import cl.smartlogix.shipping.dto.CreateCarrierRequest;
+import cl.smartlogix.shipping.model.Carrier;
+import cl.smartlogix.shipping.repository.CarrierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,14 +17,14 @@ import java.util.List;
 @Transactional
 public class CarrierServiceImpl implements CarrierService {
 
-    private final TransportistaRepository repository;
+    private final CarrierRepository repository;
 
     @Override
-    public CarrierDto crear(CrearTransportistaRequest req) {
+    public CarrierDto crear(CreateCarrierRequest req) {
         if (req.rut() != null && repository.findByRut(req.rut()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "RUT ya registrado: " + req.rut());
         }
-        Transportista t = Transportista.builder()
+        Carrier t = Carrier.builder()
             .nombre(req.nombre())
             .rut(req.rut())
             .telefonoContacto(req.telefonoContacto())
@@ -51,7 +51,7 @@ public class CarrierServiceImpl implements CarrierService {
         return repository.findByActivoTrue().stream().map(CarrierDto::from).toList();
     }
 
-    private Transportista buscar(Long id) {
+    private Carrier buscar(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transportista no encontrado: " + id));
     }

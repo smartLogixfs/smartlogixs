@@ -1,16 +1,16 @@
 package cl.smartlogix.inventory.service;
 
-import cl.smartlogix.inventory.dto.MovimientoRequest;
+import cl.smartlogix.inventory.dto.StockMovementRequest;
 import cl.smartlogix.inventory.dto.StockDto;
 import cl.smartlogix.inventory.dto.StockMovementDto;
-import cl.smartlogix.inventory.model.Bodega;
-import cl.smartlogix.inventory.model.MovimientoStock;
-import cl.smartlogix.inventory.model.Producto;
+import cl.smartlogix.inventory.model.Warehouse;
+import cl.smartlogix.inventory.model.StockMovement;
+import cl.smartlogix.inventory.model.Product;
 import cl.smartlogix.inventory.model.Stock;
-import cl.smartlogix.inventory.model.TipoMovimiento;
-import cl.smartlogix.inventory.repository.BodegaRepository;
-import cl.smartlogix.inventory.repository.MovimientoStockRepository;
-import cl.smartlogix.inventory.repository.ProductoRepository;
+import cl.smartlogix.inventory.model.MovementType;
+import cl.smartlogix.inventory.repository.WarehouseRepository;
+import cl.smartlogix.inventory.repository.StockMovementRepository;
+import cl.smartlogix.inventory.repository.ProductRepository;
 import cl.smartlogix.inventory.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,9 +26,9 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-    private final ProductoRepository productoRepository;
-    private final BodegaRepository bodegaRepository;
-    private final MovimientoStockRepository movimientoRepository;
+    private final ProductRepository productoRepository;
+    private final WarehouseRepository bodegaRepository;
+    private final StockMovementRepository movimientoRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,49 +62,49 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public StockDto entrada(MovimientoRequest req) {
+    public StockDto entrada(StockMovementRequest req) {
         Stock stock = obtenerOCrearStock(req.idProducto(), req.idBodega());
         stock.setCantidad(stock.getCantidad() + req.cantidad());
         // Persiste el Stock antes del Movimiento: en el primer ENTRADA el Stock es transient
         // y MovimientoStock.stock es non-nullable, lo cual falla la validación de Hibernate.
         stock = stockRepository.save(stock);
-        registrarMovimiento(stock, TipoMovimiento.ENTRADA, req);
+        registrarMovimiento(stock, MovementType.ENTRADA, req);
         return StockDto.from(stock);
     }
 
     @Override
-    public StockDto salida(MovimientoRequest req) {
+    public StockDto salida(StockMovementRequest req) {
         Stock stock = buscarStock(req.idProducto(), req.idBodega());
         if (stock.getDisponible() < req.cantidad()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Stock disponible insuficiente: " + stock.getDisponible() + " < " + req.cantidad());
         }
         stock.setCantidad(stock.getCantidad() - req.cantidad());
-        registrarMovimiento(stock, TipoMovimiento.SALIDA, req);
+        registrarMovimiento(stock, MovementType.SALIDA, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
     @Override
-    public StockDto reservar(MovimientoRequest req) {
+    public StockDto reservar(StockMovementRequest req) {
         Stock stock = buscarStock(req.idProducto(), req.idBodega());
         if (stock.getDisponible() < req.cantidad()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Stock disponible insuficiente para reservar: " + stock.getDisponible() + " < " + req.cantidad());
         }
         stock.setCantReservada(stock.getCantReservada() + req.cantidad());
-        registrarMovimiento(stock, TipoMovimiento.RESERVA, req);
+        registrarMovimiento(stock, MovementType.RESERVA, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
     @Override
-    public StockDto liberar(MovimientoRequest req) {
+    public StockDto liberar(StockMovementRequest req) {
         Stock stock = buscarStock(req.idProducto(), req.idBodega());
         if (stock.getCantReservada() < req.cantidad()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "No hay reserva suficiente para liberar: " + stock.getCantReservada() + " < " + req.cantidad());
         }
         stock.setCantReservada(stock.getCantReservada() - req.cantidad());
-        registrarMovimiento(stock, TipoMovimiento.LIBERACION, req);
+        registrarMovimiento(stock, MovementType.LIBERACION, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
@@ -117,9 +117,9 @@ public class StockServiceImpl implements StockService {
     private Stock obtenerOCrearStock(Long idProducto, Long idBodega) {
         return stockRepository.findByProducto_IdProductoAndBodega_IdBodega(idProducto, idBodega)
             .orElseGet(() -> {
-                Producto producto = productoRepository.findById(idProducto)
+                Product producto = productoRepository.findById(idProducto)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + idProducto));
-                Bodega bodega = bodegaRepository.findById(idBodega)
+                Warehouse bodega = bodegaRepository.findById(idBodega)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bodega no encontrada: " + idBodega));
                 return Stock.builder()
                     .producto(producto)
@@ -131,8 +131,8 @@ public class StockServiceImpl implements StockService {
             });
     }
 
-    private void registrarMovimiento(Stock stock, TipoMovimiento tipo, MovimientoRequest req) {
-        movimientoRepository.save(MovimientoStock.builder()
+    private void registrarMovimiento(Stock stock, MovementType tipo, StockMovementRequest req) {
+        movimientoRepository.save(StockMovement.builder()
             .stock(stock)
             .tipo(tipo)
             .cantidad(req.cantidad())

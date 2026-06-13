@@ -28,7 +28,7 @@ public class Stock {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_bodega", nullable = false)
-    private Bodega bodega;
+    private Warehouse bodega;
 
     @Column(nullable = false)
     private Integer cantidad = 0;

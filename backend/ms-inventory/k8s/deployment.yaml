@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-inventory
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/name: ms-inventory
+    app.kubernetes.io/part-of: smartlogix
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ms-inventory
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ms-inventory
+        app.kubernetes.io/part-of: smartlogix
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: ms-inventory
+          image: smartlogix/ms-inventory:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db-inventory:5432/$(POSTGRES_INVENTARIO_DB)
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_INVENTARIO_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartlogix-secret
+                  key: POSTGRES_INVENTARIO_PASSWORD
+            - name: POSTGRES_INVENTARIO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_INVENTARIO_DB
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          # Activar tras agregar spring-boot-starter-actuator
+          # livenessProbe:
+          #   httpGet:
+          #     path: /actuator/health/liveness
+          #     port: http
+          #   initialDelaySeconds: 60
+          #   periodSeconds: 15
+          # readinessProbe:
+          #   httpGet:
+          #     path: /actuator/health/readiness
+          #     port: http
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 10

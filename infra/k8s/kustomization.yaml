@@ -1,0 +1,25 @@
+# Orquestador raiz: levanta todo SmartLogix en k8s.
+# Cada microservicio mantiene su propio kustomization.yaml dentro de su carpeta,
+# por lo que tambien puede desplegarse de forma independiente:
+#   kubectl apply -k ../../backend/ms-inventory/k8s
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: smartlogix
+resources:
+  # 1) Recursos compartidos (namespace + ConfigMap)
+  - base
+
+  # 2) Capa de datos + backend - cada MS es autocontenido (incluye su Postgres)
+  - ../../backend/ms-inventory/k8s
+  - ../../backend/ms-order/k8s
+  - ../../backend/ms-shipping/k8s
+  - ../../backend/ms-user/k8s
+  - ../../backend/ms-auth/k8s
+
+  # 3) Capa de adaptacion + gateway + presentacion
+  - ../../backend/bff/k8s
+  - ../../backend/api-gateway/k8s
+  - ../../frontend/k8s
+
+  # 4) Ingress (reemplaza Traefik)
+  - ingress.yaml

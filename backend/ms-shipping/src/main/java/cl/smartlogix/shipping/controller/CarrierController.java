@@ -1,7 +1,7 @@
 package cl.smartlogix.shipping.controller;
 
 import cl.smartlogix.shipping.dto.CarrierDto;
-import cl.smartlogix.shipping.dto.CrearTransportistaRequest;
+import cl.smartlogix.shipping.dto.CreateCarrierRequest;
 import cl.smartlogix.shipping.service.CarrierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class CarrierController {
     private final CarrierService service;
 
     @PostMapping
-    public ResponseEntity<CarrierDto> crear(@Valid @RequestBody CrearTransportistaRequest req) {
+    public ResponseEntity<CarrierDto> crear(@Valid @RequestBody CreateCarrierRequest req) {
         CarrierDto creado = service.crear(req);
         return ResponseEntity.created(URI.create("/transportistas/" + creado.idTransportista())).body(creado);
     }

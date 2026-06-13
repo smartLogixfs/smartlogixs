@@ -1,6 +1,6 @@
 package cl.smartlogix.shipping.dto;
 
-import cl.smartlogix.shipping.model.Transportista;
+import cl.smartlogix.shipping.model.Carrier;
 
 public record CarrierDto(
     Long idTransportista,
@@ -9,7 +9,7 @@ public record CarrierDto(
     String telefonoContacto,
     Boolean activo
 ) {
-    public static CarrierDto from(Transportista t) {
+    public static CarrierDto from(Carrier t) {
         return new CarrierDto(
             t.getIdTransportista(),
             t.getNombre(),

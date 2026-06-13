@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartlogix-config
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/part-of: smartlogix
+data:
+  # === Nombres de BD (DB-per-service) ===
+  POSTGRES_INVENTARIO_DB: inventario
+  POSTGRES_INVENTARIO_USER: inventario
+  POSTGRES_PEDIDO_DB: pedido
+  POSTGRES_PEDIDO_USER: pedido
+  POSTGRES_ENVIO_DB: envio
+  POSTGRES_ENVIO_USER: envio
+  POSTGRES_USUARIO_DB: usuario
+  POSTGRES_USUARIO_USER: usuario
+  POSTGRES_AUTH_DB: auth
+  POSTGRES_AUTH_USER: auth
+
+  # === URLs de servicios internos (resolucion DNS de k8s: <svc>.<ns>.svc.cluster.local) ===
+  MS_INVENTORY_URL: http://ms-inventory:8080
+  MS_ORDER_URL: http://ms-order:8080
+  MS_SHIPPING_URL: http://ms-shipping:8080
+  MS_USER_URL: http://ms-user:8080
+  MS_AUTH_URL: http://ms-auth:8081
+
+  # === JWT ===
+  JWT_ISSUER: http://ms-auth:8081
