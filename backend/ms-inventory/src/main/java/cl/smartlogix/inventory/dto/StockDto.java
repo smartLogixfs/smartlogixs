@@ -1,7 +1,5 @@
 package cl.smartlogix.inventory.dto;
 
-import cl.smartlogix.inventory.model.Stock;
-
 import java.time.OffsetDateTime;
 
 public record StockDto(
