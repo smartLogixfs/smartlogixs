@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Router, Request } from "express";
+import { ClientRequest } from "http";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { env } from "../config/env.js";
 
@@ -6,8 +7,8 @@ const router = Router();
 
 // express.json() ya parseó req.body — el stream HTTP quedó vacío y el proxy haría timeout.
 // Re-serializamos el body parseado para que el upstream lo reciba.
-const restreamBody = (proxyReq, req) => {
-  if (!req.body || !Object.keys(req.body).length) return;
+const restreamBody = (proxyReq: ClientRequest, req: Request) => {
+  if (!req.body || !Object.keys(req.body as object).length) return;
   const ct = (proxyReq.getHeader("content-type") || "").toString();
   if (!ct.includes("application/json")) return;
   const data = JSON.stringify(req.body);

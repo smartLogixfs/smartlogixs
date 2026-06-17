@@ -6,6 +6,7 @@ import healthRouter from "./routes/health.js";
 import checkoutRouter from "./routes/checkout.js";
 import ordersRouter from "./routes/orders.js";
 import dashboardRouter from "./routes/dashboard.js";
+import inventoryRouter from "./routes/inventory.js";
 import proxyRouter from "./routes/proxy.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
@@ -19,6 +20,7 @@ app.use(healthRouter);
 app.use(checkoutRouter);
 app.use(ordersRouter);
 app.use(dashboardRouter);
+app.use(inventoryRouter);
 
 // Passthrough genérico para CRUD simple de los MS.
 app.use(proxyRouter);

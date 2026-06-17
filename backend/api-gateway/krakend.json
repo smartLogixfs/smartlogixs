@@ -277,6 +277,72 @@
           "host": ["http://bff:3000"]
         }
       ]
+    },
+    {
+      "endpoint": "/api/checkout",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:pedidos"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/checkout",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/dashboard",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:pedidos"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/dashboard",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/pedidos/{id}/full",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:pedidos"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/pedidos/{id}/full",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
     }
   ]
 }

@@ -33,5 +33,5 @@ async function pedidosPorEstadoMap() {
         .catch(() => [estado, null])
     )
   );
-  return Object.fromEntries(entries);
+  return Object.fromEntries(entries as any);
 }

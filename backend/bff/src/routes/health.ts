@@ -1,12 +1,12 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 
 const router = Router();
 
-router.get("/health", (_req, res) => {
+router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", service: "bff" });
 });
 
-router.get("/", (_req, res) => {
+router.get("/", (_req: Request, res: Response) => {
   res.json({
     service: "smartlogix-bff",
     version: "0.1.0",

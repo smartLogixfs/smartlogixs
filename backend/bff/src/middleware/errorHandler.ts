@@ -1,7 +1,8 @@
+import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { UpstreamError } from "../clients/httpClient.js";
 
-export function notFound(_req, res) {
+export function notFound(_req: Request, res: Response) {
   res.status(404).json({
     status: 404,
     title: "Not Found",
@@ -10,7 +11,7 @@ export function notFound(_req, res) {
 }
 
 // eslint-disable-next-line no-unused-vars
-export function errorHandler(err, req, res, _next) {
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   const ts = new Date().toISOString();
 
   if (err instanceof ZodError) {
@@ -25,7 +26,7 @@ export function errorHandler(err, req, res, _next) {
   }
 
   if (err instanceof UpstreamError) {
-    const status = err.status >= 400 && err.status < 600 ? err.status : 502;
+    const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 502;
     return res.status(status).json({
       status,
       title: `Error upstream (${err.service})`,

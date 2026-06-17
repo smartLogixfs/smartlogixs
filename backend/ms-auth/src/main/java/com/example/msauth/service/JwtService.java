@@ -35,6 +35,10 @@ public class JwtService {
         Instant now = Instant.now();
         Instant expiration = now.plus(accessTokenMinutes, ChronoUnit.MINUTES);
 
+        String scopes = "ADMIN".equalsIgnoreCase(user.getRole())
+                ? "read:inventario write:inventario read:pedidos write:pedidos read:envios write:envios read:usuarios write:usuarios"
+                : "read:inventario read:pedidos read:envios";
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .id(UUID.randomUUID().toString())
                 .issuer(issuer)
@@ -43,6 +47,7 @@ public class JwtService {
                 .subject(user.getEmail())
                 .claim("name", user.getName())
                 .claim("role", user.getRole())
+                .claim("scope", scopes)
                 .audience(java.util.List.of("bff"))
                 .build();
 

@@ -5,7 +5,7 @@ import { UpstreamError } from "../clients/httpClient.js";
 
 // Orquestación: crear pedido → reservar stock por ítem → crear envío.
 // Si falla la reserva, se intenta liberar las reservas ya hechas (rollback best-effort).
-export async function checkout(payload) {
+export async function checkout(payload: any) {
   const pedido = await order.crear({
     idCliente: payload.idCliente,
     idMarketplace: payload.idMarketplace,
@@ -13,7 +13,7 @@ export async function checkout(payload) {
     items: payload.items,
   });
 
-  const reservasOk = [];
+  const reservasOk: any[] = [];
   try {
     for (const item of payload.items) {
       await inventory.reservar({
@@ -24,7 +24,7 @@ export async function checkout(payload) {
       });
       reservasOk.push(item);
     }
-  } catch (err) {
+  } catch (err: any) {
     await rollbackReservas(reservasOk, payload.idBodega, pedido.codigo);
     throw new UpstreamError(
       `Reserva de stock falló: ${err.message}. Reservas previas revertidas.`,
@@ -43,7 +43,7 @@ export async function checkout(payload) {
   return { pedido, envio };
 }
 
-async function rollbackReservas(reservas, idBodega, referenciaPedido) {
+async function rollbackReservas(reservas: any[], idBodega: number | string, referenciaPedido: string) {
   for (const item of reservas) {
     try {
       await inventory.liberar({
@@ -52,7 +52,7 @@ async function rollbackReservas(reservas, idBodega, referenciaPedido) {
         cantidad: item.cantidad,
         referenciaPedido,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("[bff] rollback liberar falló:", err.message);
     }
   }
