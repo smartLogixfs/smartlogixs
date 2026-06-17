@@ -1,4 +1,4 @@
-package com.example.msauth.service;
+package cl.smartlogix.auth.service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
-import com.example.msauth.domain.UserAccount;
+import cl.smartlogix.auth.domain.UserAccount;
 
 @Service
 public class JwtService {

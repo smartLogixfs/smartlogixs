@@ -1,12 +1,12 @@
-package com.example.msauth;
+package cl.smartlogix.auth;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MsAuthApplication {
+public class AuthApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(MsAuthApplication.class, args);
+        SpringApplication.run(AuthApplication.class, args);
     }
 }

@@ -25,6 +25,15 @@ management:
       exposure:
         include: health,info
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  show-actuator: false
+
 security:
   jwt:
     issuer: ${JWT_ISSUER:http://localhost:8081}

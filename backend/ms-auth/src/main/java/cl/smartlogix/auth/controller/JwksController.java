@@ -1,4 +1,4 @@
-package com.example.msauth.controller;
+package cl.smartlogix.auth.controller;
 
 import java.util.Map;
 

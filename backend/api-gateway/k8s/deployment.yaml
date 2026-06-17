@@ -32,6 +32,11 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: JWT_SECRET
+          volumeMounts:
+            - name: krakend-config
+              mountPath: /etc/krakend/krakend.json
+              subPath: krakend.json
+              readOnly: true
           resources:
             requests:
               cpu: 50m
@@ -39,3 +44,10 @@ spec:
             limits:
               cpu: 500m
               memory: 384Mi
+      volumes:
+        - name: krakend-config
+          configMap:
+            name: krakend-config
+            items:
+              - key: krakend.json
+                path: krakend.json

@@ -1,4 +1,4 @@
-package com.example.msauth.config;
+package cl.smartlogix.auth.config;
 
 import java.io.IOException;
 import java.nio.file.Files;
