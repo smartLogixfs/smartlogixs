@@ -1,4 +1,4 @@
-package com.example.msauth.config;
+package cl.smartlogix.auth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +18,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/.well-known/jwks.json",
+                        "/actuator/health",
+                        "/actuator/info"
+                    ).permitAll()
                     .anyRequest().permitAll());
 
         return http.build();

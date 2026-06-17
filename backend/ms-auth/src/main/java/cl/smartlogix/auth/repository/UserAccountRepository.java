@@ -1,6 +1,6 @@
-package com.example.msauth.repository;
+package cl.smartlogix.auth.repository;
 
-import com.example.msauth.domain.UserAccount;
+import cl.smartlogix.auth.domain.UserAccount;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
