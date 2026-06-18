@@ -40,8 +40,12 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_BASE: ${FRONTEND_API_BASE:-http://localhost:8090/api}
     container_name: smartlogix-frontend
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
     networks:
       - web
     labels:
