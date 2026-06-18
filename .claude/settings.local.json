@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(git merge-tree *)",
+      "Bash(docker compose *)",
+      "Bash(docker version *)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

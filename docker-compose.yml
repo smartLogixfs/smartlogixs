@@ -64,6 +64,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
       - bff
+    ports:
+      - "127.0.0.1:8090:8080"
     networks:
       - web
       - internal
@@ -182,6 +184,11 @@ services:
       DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: http://ms-auth:8081
+      JWT_PRIVATE_KEY_PATH: /keys/private_key.pem
+      JWT_PUBLIC_KEY_PATH: /keys/public_key.pem
+    volumes:
+      - ./private_key.pem:/keys/private_key.pem:ro
+      - ./public_key.pem:/keys/public_key.pem:ro
     depends_on:
       - db-auth
     networks:
