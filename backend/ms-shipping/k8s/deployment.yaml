@@ -29,6 +29,11 @@ spec:
           env:
             - name: SERVER_PORT
               value: "8080"
+            - name: POSTGRES_ENVIO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_ENVIO_DB
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://db-shipping:5432/$(POSTGRES_ENVIO_DB)
             - name: SPRING_DATASOURCE_USERNAME
@@ -41,11 +46,6 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_ENVIO_PASSWORD
-            - name: POSTGRES_ENVIO_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: smartlogix-config
-                  key: POSTGRES_ENVIO_DB
           resources:
             requests:
               cpu: 100m

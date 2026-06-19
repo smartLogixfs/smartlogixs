@@ -29,6 +29,11 @@ spec:
           env:
             - name: SERVER_PORT
               value: "8081"
+            - name: POSTGRES_AUTH_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_AUTH_DB
             - name: DB_URL
               value: jdbc:postgresql://db-auth:5432/$(POSTGRES_AUTH_DB)
             - name: DB_USERNAME
@@ -41,11 +46,6 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_AUTH_PASSWORD
-            - name: POSTGRES_AUTH_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: smartlogix-config
-                  key: POSTGRES_AUTH_DB
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -56,6 +56,14 @@ spec:
                 configMapKeyRef:
                   name: smartlogix-config
                   key: JWT_ISSUER
+            - name: JWT_PRIVATE_KEY_PATH
+              value: /keys/private_key.pem
+            - name: JWT_PUBLIC_KEY_PATH
+              value: /keys/public_key.pem
+          volumeMounts:
+            - name: jwt-keys
+              mountPath: /keys
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -63,3 +71,8 @@ spec:
             limits:
               cpu: 1000m
               memory: 768Mi
+      volumes:
+        - name: jwt-keys
+          secret:
+            secretName: ms-auth-keys
+            defaultMode: 0400

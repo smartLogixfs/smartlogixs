@@ -50,14 +50,22 @@ puede desplegar de forma aislada (util para CI/CD o para reiniciar 1 solo MS).
 # 1) Crear el namespace y los recursos compartidos
 kubectl apply -k infra/k8s/base
 
-# 2) Crear el Secret (NO esta en el kustomize, se inyecta desde el .env)
+# 2) Crear el Secret de credenciales (NO esta en el kustomize, se inyecta desde el .env)
 kubectl -n smartlogix create secret generic smartlogix-secret \
   --from-env-file=.env \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# 3) Desplegar TODO via el orquestador raiz
+# 3) Crear el Secret de llaves JWT para ms-auth (NO esta en el kustomize)
+kubectl -n smartlogix create secret generic ms-auth-keys \
+  --from-file=private_key.pem \
+  --from-file=public_key.pem \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# 4) Desplegar TODO via el orquestador raiz
 kubectl apply -k infra/k8s
 ```
+
+> El frontend hace fetch a `/api/...` relativo. El Ingress enruta `app.smartlogix.localhost/api/*` al `api-gateway` (same-origin, sin CORS). No es necesario rebuildear el frontend con `VITE_API_BASE` para k8s.
 
 ## Despliegue: un solo microservicio
 

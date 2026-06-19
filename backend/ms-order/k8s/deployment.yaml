@@ -29,6 +29,11 @@ spec:
           env:
             - name: SERVER_PORT
               value: "8080"
+            - name: POSTGRES_PEDIDO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_PEDIDO_DB
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://db-order:5432/$(POSTGRES_PEDIDO_DB)
             - name: SPRING_DATASOURCE_USERNAME
@@ -41,11 +46,6 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_PEDIDO_PASSWORD
-            - name: POSTGRES_PEDIDO_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: smartlogix-config
-                  key: POSTGRES_PEDIDO_DB
             - name: MS_INVENTORY_URL
               valueFrom:
                 configMapKeyRef:
