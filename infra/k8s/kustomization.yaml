@@ -5,6 +5,23 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: smartlogix
+images:
+  - name: smartlogix/api-gateway
+    newTag: fix-k8s-v2
+  - name: smartlogix/bff
+    newTag: fix-k8s
+  - name: smartlogix/frontend
+    newTag: fix-k8s
+  - name: smartlogix/ms-auth
+    newTag: fix-k8s
+  - name: smartlogix/ms-inventory
+    newTag: fix-k8s
+  - name: smartlogix/ms-order
+    newTag: fix-k8s
+  - name: smartlogix/ms-shipping
+    newTag: fix-k8s
+  - name: smartlogix/ms-user
+    newTag: fix-k8s
 resources:
   # 1) Recursos compartidos (namespace + ConfigMap)
   - base
