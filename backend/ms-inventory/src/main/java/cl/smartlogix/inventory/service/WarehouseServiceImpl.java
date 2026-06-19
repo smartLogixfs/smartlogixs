@@ -20,13 +20,13 @@ public class WarehouseServiceImpl implements WarehouseService {
     private final WarehouseRepository repository;
 
     @Override
-    public WarehouseDto crear(CreateWarehouseRequest req) {
-        Warehouse b = Warehouse.builder()
-            .nombre(req.nombre())
-            .ubicacion(req.ubicacion())
-            .activo(Boolean.TRUE)
+    public WarehouseDto create(CreateWarehouseRequest req) {
+        Warehouse w = Warehouse.builder()
+            .name(req.name())
+            .location(req.location())
+            .active(Boolean.TRUE)
             .build();
-        return WarehouseDto.from(repository.save(b));
+        return WarehouseDto.from(repository.save(w));
     }
 
     @Override

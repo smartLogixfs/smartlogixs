@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ShipmentTrackingRepository extends JpaRepository<ShipmentTracking, Long> {
-    List<ShipmentTracking> findByEnvio_IdEnvioOrderByCreatedAtAsc(Long idEnvio);
+    List<ShipmentTracking> findByShipment_IdOrderByCreatedAtAsc(Long shipmentId);
 }

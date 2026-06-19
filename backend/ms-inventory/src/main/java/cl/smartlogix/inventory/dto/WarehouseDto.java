@@ -1,20 +1,19 @@
 package cl.smartlogix.inventory.dto;
 
 import cl.smartlogix.inventory.model.Warehouse;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record WarehouseDto(
-    @JsonProperty("warehouseId") Long idBodega,
-    @JsonProperty("name") String nombre,
-    @JsonProperty("location") String ubicacion,
-    @JsonProperty("active") Boolean activo
+    Long warehouseId,
+    String name,
+    String location,
+    Boolean active
 ) {
-    public static WarehouseDto from(Warehouse b) {
+    public static WarehouseDto from(Warehouse w) {
         return new WarehouseDto(
-            b.getIdBodega(),
-            b.getNombre(),
-            b.getUbicacion(),
-            b.getActivo()
+            w.getId(),
+            w.getName(),
+            w.getLocation(),
+            w.getActive()
         );
     }
 }

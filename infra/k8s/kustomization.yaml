@@ -7,21 +7,21 @@ kind: Kustomization
 namespace: smartlogix
 images:
   - name: smartlogix/api-gateway
-    newTag: json-en
+    newTag: eh
   - name: smartlogix/bff
-    newTag: json-en
+    newTag: eng-full
   - name: smartlogix/frontend
     newTag: json-en
   - name: smartlogix/ms-auth
-    newTag: json-en
+    newTag: eh
   - name: smartlogix/ms-inventory
-    newTag: json-en
+    newTag: eng-full
   - name: smartlogix/ms-order
-    newTag: json-en
+    newTag: eng-full
   - name: smartlogix/ms-shipping
-    newTag: json-en
+    newTag: eng-full
   - name: smartlogix/ms-user
-    newTag: json-en
+    newTag: eng-full
 resources:
   # 1) Recursos compartidos (namespace + ConfigMap)
   - base

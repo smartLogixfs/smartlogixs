@@ -1,22 +1,21 @@
 package cl.smartlogix.shipping.dto;
 
 import cl.smartlogix.shipping.model.Carrier;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record CarrierDto(
-    @JsonProperty("carrierId") Long idTransportista,
-    @JsonProperty("name") String nombre,
+    Long carrierId,
+    String name,
     String rut,
-    @JsonProperty("contactPhone") String telefonoContacto,
-    @JsonProperty("active") Boolean activo
+    String contactPhone,
+    Boolean active
 ) {
-    public static CarrierDto from(Carrier t) {
+    public static CarrierDto from(Carrier c) {
         return new CarrierDto(
-            t.getIdTransportista(),
-            t.getNombre(),
-            t.getRut(),
-            t.getTelefonoContacto(),
-            t.getActivo()
+            c.getId(),
+            c.getName(),
+            c.getRut(),
+            c.getContactPhone(),
+            c.getActive()
         );
     }
 }

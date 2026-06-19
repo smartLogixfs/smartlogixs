@@ -41,10 +41,10 @@ async function requestRaw(method: string, path: string, body: any): Promise<any>
 
 router.get("/inventory/products-with-stock", async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const products = await inventory.productos();
+    const products = await inventory.products();
     const result = await Promise.all(
       products.map(async (p: any) => {
-        const stocks = await inventory.stockByProducto(p.productId).catch(() => []);
+        const stocks = await inventory.stockByProduct(p.productId).catch(() => []);
         const totalQty = stocks.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
         const minStock = stocks.length > 0 ? Math.min(...stocks.map((s: any) => s.minStock || 0)) : 15;
         const locations = stocks.map((s: any) => `${s.warehouseName} (Qty: ${s.quantity})`).join(", ") || "Sin Ubicación";

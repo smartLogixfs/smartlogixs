@@ -20,24 +20,24 @@ public class Stock {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_stock")
-    private Long idStock;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_producto", nullable = false)
-    private Product producto;
+    private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_bodega", nullable = false)
-    private Warehouse bodega;
+    private Warehouse warehouse;
 
-    @Column(nullable = false)
-    private Integer cantidad = 0;
+    @Column(name = "cantidad", nullable = false)
+    private Integer quantity = 0;
 
     @Column(name = "cant_reservada", nullable = false)
-    private Integer cantReservada = 0;
+    private Integer reservedQuantity = 0;
 
     @Column(name = "stock_minimo", nullable = false)
-    private Integer stockMinimo = 0;
+    private Integer minStock = 0;
 
     @Version
     @Column(nullable = false)
@@ -53,7 +53,7 @@ public class Stock {
     }
 
     @Transient
-    public int getDisponible() {
-        return Math.max(0, this.cantidad - this.cantReservada);
+    public int getAvailable() {
+        return Math.max(0, this.quantity - this.reservedQuantity);
     }
 }

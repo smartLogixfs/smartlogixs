@@ -26,117 +26,117 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-    private final ProductRepository productoRepository;
-    private final WarehouseRepository bodegaRepository;
-    private final StockMovementRepository movimientoRepository;
+    private final ProductRepository productRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final StockMovementRepository movementRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public StockDto get(Long idProducto, Long idBodega) {
-        return StockDto.from(buscarStock(idProducto, idBodega));
+    public StockDto get(Long productId, Long warehouseId) {
+        return StockDto.from(findStock(productId, warehouseId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<StockDto> findByProducto(Long idProducto) {
-        return stockRepository.findByProducto_IdProducto(idProducto).stream().map(StockDto::from).toList();
+    public List<StockDto> findByProduct(Long productId) {
+        return stockRepository.findByProduct_Id(productId).stream().map(StockDto::from).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<StockDto> findConStockBajo() {
-        return stockRepository.findConStockBajo().stream().map(StockDto::from).toList();
+    public List<StockDto> findLowStock() {
+        return stockRepository.findLowStock().stream().map(StockDto::from).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public int disponibleTotal(Long idProducto) {
-        return stockRepository.sumDisponibleByProducto(idProducto);
+    public int totalAvailable(Long productId) {
+        return stockRepository.sumAvailableByProduct(productId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<StockMovementDto> historial(Long idStock) {
-        return movimientoRepository.findByStock_IdStockOrderByCreatedAtDesc(idStock).stream()
+    public List<StockMovementDto> history(Long stockId) {
+        return movementRepository.findByStock_IdOrderByCreatedAtDesc(stockId).stream()
             .map(StockMovementDto::from).toList();
     }
 
     @Override
-    public StockDto entrada(StockMovementRequest req) {
-        Stock stock = obtenerOCrearStock(req.idProducto(), req.idBodega());
-        stock.setCantidad(stock.getCantidad() + req.cantidad());
-        // Persiste el Stock antes del Movimiento: en el primer ENTRADA el Stock es transient
-        // y MovimientoStock.stock es non-nullable, lo cual falla la validación de Hibernate.
+    public StockDto stockIn(StockMovementRequest req) {
+        Stock stock = getOrCreateStock(req.productId(), req.warehouseId());
+        stock.setQuantity(stock.getQuantity() + req.quantity());
+        // Persiste el Stock antes del Movement: en el primer ENTRADA el Stock es transient
+        // y StockMovement.stock es non-nullable, lo cual falla la validación de Hibernate.
         stock = stockRepository.save(stock);
-        registrarMovimiento(stock, MovementType.ENTRADA, req);
+        registerMovement(stock, MovementType.ENTRADA, req);
         return StockDto.from(stock);
     }
 
     @Override
-    public StockDto salida(StockMovementRequest req) {
-        Stock stock = buscarStock(req.idProducto(), req.idBodega());
-        if (stock.getDisponible() < req.cantidad()) {
+    public StockDto stockOut(StockMovementRequest req) {
+        Stock stock = findStock(req.productId(), req.warehouseId());
+        if (stock.getAvailable() < req.quantity()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Stock disponible insuficiente: " + stock.getDisponible() + " < " + req.cantidad());
+                "Stock disponible insuficiente: " + stock.getAvailable() + " < " + req.quantity());
         }
-        stock.setCantidad(stock.getCantidad() - req.cantidad());
-        registrarMovimiento(stock, MovementType.SALIDA, req);
+        stock.setQuantity(stock.getQuantity() - req.quantity());
+        registerMovement(stock, MovementType.SALIDA, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
     @Override
-    public StockDto reservar(StockMovementRequest req) {
-        Stock stock = buscarStock(req.idProducto(), req.idBodega());
-        if (stock.getDisponible() < req.cantidad()) {
+    public StockDto reserve(StockMovementRequest req) {
+        Stock stock = findStock(req.productId(), req.warehouseId());
+        if (stock.getAvailable() < req.quantity()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Stock disponible insuficiente para reservar: " + stock.getDisponible() + " < " + req.cantidad());
+                "Stock disponible insuficiente para reservar: " + stock.getAvailable() + " < " + req.quantity());
         }
-        stock.setCantReservada(stock.getCantReservada() + req.cantidad());
-        registrarMovimiento(stock, MovementType.RESERVA, req);
+        stock.setReservedQuantity(stock.getReservedQuantity() + req.quantity());
+        registerMovement(stock, MovementType.RESERVA, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
     @Override
-    public StockDto liberar(StockMovementRequest req) {
-        Stock stock = buscarStock(req.idProducto(), req.idBodega());
-        if (stock.getCantReservada() < req.cantidad()) {
+    public StockDto release(StockMovementRequest req) {
+        Stock stock = findStock(req.productId(), req.warehouseId());
+        if (stock.getReservedQuantity() < req.quantity()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "No hay reserva suficiente para liberar: " + stock.getCantReservada() + " < " + req.cantidad());
+                "No hay reserva suficiente para liberar: " + stock.getReservedQuantity() + " < " + req.quantity());
         }
-        stock.setCantReservada(stock.getCantReservada() - req.cantidad());
-        registrarMovimiento(stock, MovementType.LIBERACION, req);
+        stock.setReservedQuantity(stock.getReservedQuantity() - req.quantity());
+        registerMovement(stock, MovementType.LIBERACION, req);
         return StockDto.from(stockRepository.save(stock));
     }
 
-    private Stock buscarStock(Long idProducto, Long idBodega) {
-        return stockRepository.findByProducto_IdProductoAndBodega_IdBodega(idProducto, idBodega)
+    private Stock findStock(Long productId, Long warehouseId) {
+        return stockRepository.findByProduct_IdAndWarehouse_Id(productId, warehouseId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                "No existe stock para producto " + idProducto + " en bodega " + idBodega));
+                "No existe stock para producto " + productId + " en bodega " + warehouseId));
     }
 
-    private Stock obtenerOCrearStock(Long idProducto, Long idBodega) {
-        return stockRepository.findByProducto_IdProductoAndBodega_IdBodega(idProducto, idBodega)
+    private Stock getOrCreateStock(Long productId, Long warehouseId) {
+        return stockRepository.findByProduct_IdAndWarehouse_Id(productId, warehouseId)
             .orElseGet(() -> {
-                Product producto = productoRepository.findById(idProducto)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + idProducto));
-                Warehouse bodega = bodegaRepository.findById(idBodega)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bodega no encontrada: " + idBodega));
+                Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + productId));
+                Warehouse warehouse = warehouseRepository.findById(warehouseId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bodega no encontrada: " + warehouseId));
                 return Stock.builder()
-                    .producto(producto)
-                    .bodega(bodega)
-                    .cantidad(0)
-                    .cantReservada(0)
-                    .stockMinimo(0)
+                    .product(product)
+                    .warehouse(warehouse)
+                    .quantity(0)
+                    .reservedQuantity(0)
+                    .minStock(0)
                     .build();
             });
     }
 
-    private void registrarMovimiento(Stock stock, MovementType tipo, StockMovementRequest req) {
-        movimientoRepository.save(StockMovement.builder()
+    private void registerMovement(Stock stock, MovementType type, StockMovementRequest req) {
+        movementRepository.save(StockMovement.builder()
             .stock(stock)
-            .tipo(tipo)
-            .cantidad(req.cantidad())
-            .referenciaPedido(req.referenciaPedido())
+            .type(type)
+            .quantity(req.quantity())
+            .orderReference(req.orderReference())
             .build());
     }
 }

@@ -7,14 +7,14 @@ import cl.smartlogix.inventory.dto.StockMovementDto;
 import java.util.List;
 
 public interface StockService {
-    StockDto get(Long idProducto, Long idBodega);
-    List<StockDto> findByProducto(Long idProducto);
-    List<StockDto> findConStockBajo();
-    int disponibleTotal(Long idProducto);
-    List<StockMovementDto> historial(Long idStock);
+    StockDto get(Long productId, Long warehouseId);
+    List<StockDto> findByProduct(Long productId);
+    List<StockDto> findLowStock();
+    int totalAvailable(Long productId);
+    List<StockMovementDto> history(Long stockId);
 
-    StockDto entrada(StockMovementRequest req);
-    StockDto salida(StockMovementRequest req);
-    StockDto reservar(StockMovementRequest req);
-    StockDto liberar(StockMovementRequest req);
+    StockDto stockIn(StockMovementRequest req);
+    StockDto stockOut(StockMovementRequest req);
+    StockDto reserve(StockMovementRequest req);
+    StockDto release(StockMovementRequest req);
 }

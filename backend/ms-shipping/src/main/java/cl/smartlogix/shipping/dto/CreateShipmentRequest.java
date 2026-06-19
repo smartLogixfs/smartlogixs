@@ -1,6 +1,5 @@
 package cl.smartlogix.shipping.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,22 +7,18 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record CreateShipmentRequest(
-    @JsonProperty("orderId")
     @NotNull(message = "orderId es obligatorio")
-    Long idPedido,
+    Long orderId,
 
-    @JsonProperty("destinationAddress")
     @NotBlank(message = "destinationAddress es obligatoria")
     @Size(max = 255)
-    String direccionDestino,
+    String destinationAddress,
 
-    @JsonProperty("district")
     @Size(max = 120)
-    String comuna,
+    String district,
 
     @Size(max = 120)
     String region,
 
-    @JsonProperty("estimatedDate")
-    LocalDate fechaEstimada
+    LocalDate estimatedDate
 ) {}

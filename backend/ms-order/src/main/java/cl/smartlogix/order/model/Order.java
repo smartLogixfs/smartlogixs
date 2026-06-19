@@ -20,43 +20,43 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_pedido")
-    private Long idPedido;
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 40)
-    private String codigo;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private OrderType tipo;
+    @Column(name = "codigo", nullable = false, unique = true, length = 40)
+    private String code;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private OrderStatus estado = OrderStatus.PENDIENTE;
+    @Column(name = "tipo", nullable = false, length = 20)
+    private OrderType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
+    private OrderStatus status = OrderStatus.PENDIENTE;
 
     /** ID lógico del cliente (no FK física). */
     @Column(name = "id_cliente", nullable = false, length = 64)
-    private String idCliente;
+    private String customerId;
 
     /** Identificador del marketplace externo (Shopify, MercadoLibre, etc.). */
     @Column(name = "id_marketplace", length = 64)
-    private String idMarketplace;
+    private String marketplaceId;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal impuesto = BigDecimal.ZERO;
+    @Column(name = "impuesto", nullable = false, precision = 12, scale = 2)
+    private BigDecimal tax = BigDecimal.ZERO;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 
-    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 
-    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private List<OrderHistory> historial = new ArrayList<>();
+    private List<OrderHistory> history = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -77,12 +77,12 @@ public class Order {
     }
 
     public void addItem(OrderItem item) {
-        item.setPedido(this);
+        item.setOrder(this);
         this.items.add(item);
     }
 
-    public void addHistorial(OrderHistory h) {
-        h.setPedido(this);
-        this.historial.add(h);
+    public void addHistory(OrderHistory h) {
+        h.setOrder(this);
+        this.history.add(h);
     }
 }

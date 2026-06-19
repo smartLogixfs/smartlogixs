@@ -19,9 +19,9 @@ public class CarrierController {
     private final CarrierService service;
 
     @PostMapping
-    public ResponseEntity<CarrierDto> crear(@Valid @RequestBody CreateCarrierRequest req) {
-        CarrierDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/carriers/" + creado.idTransportista())).body(creado);
+    public ResponseEntity<CarrierDto> create(@Valid @RequestBody CreateCarrierRequest req) {
+        CarrierDto created = service.create(req);
+        return ResponseEntity.created(URI.create("/carriers/" + created.carrierId())).body(created);
     }
 
     @GetMapping("/{id}")
@@ -30,8 +30,8 @@ public class CarrierController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CarrierDto>> listar(@RequestParam(required = false) Boolean activo) {
-        List<CarrierDto> data = Boolean.TRUE.equals(activo) ? service.findActivos() : service.findAll();
+    public ResponseEntity<List<CarrierDto>> list(@RequestParam(required = false) Boolean active) {
+        List<CarrierDto> data = Boolean.TRUE.equals(active) ? service.findActive() : service.findAll();
         return ResponseEntity.ok(data);
     }
 }

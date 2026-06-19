@@ -2,44 +2,43 @@ package cl.smartlogix.shipping.dto;
 
 import cl.smartlogix.shipping.model.Shipment;
 import cl.smartlogix.shipping.model.ShipmentState;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ShipmentDto(
-    @JsonProperty("shipmentId") Long idEnvio,
-    @JsonProperty("orderId") Long idPedido,
-    @JsonProperty("carrierId") Long idTransportista,
-    @JsonProperty("carrierName") String transportistaNombre,
+    Long shipmentId,
+    Long orderId,
+    Long carrierId,
+    String carrierName,
     String trackingNumber,
-    @JsonProperty("status") ShipmentState estado,
-    @JsonProperty("destinationAddress") String direccionDestino,
-    @JsonProperty("district") String comuna,
+    ShipmentState status,
+    String destinationAddress,
+    String district,
     String region,
-    @JsonProperty("estimatedDate") LocalDate fechaEstimada,
-    @JsonProperty("deliveryDate") OffsetDateTime fechaEntrega,
-    @JsonProperty("tracking") List<ShipmentTrackingDto> seguimiento,
+    LocalDate estimatedDate,
+    OffsetDateTime deliveryDate,
+    List<ShipmentTrackingDto> tracking,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
-    public static ShipmentDto from(Shipment e) {
+    public static ShipmentDto from(Shipment s) {
         return new ShipmentDto(
-            e.getIdEnvio(),
-            e.getIdPedido(),
-            e.getTransportista() != null ? e.getTransportista().getIdTransportista() : null,
-            e.getTransportista() != null ? e.getTransportista().getNombre() : null,
-            e.getTrackingNumber(),
-            e.getEstado(),
-            e.getDireccionDestino(),
-            e.getComuna(),
-            e.getRegion(),
-            e.getFechaEstimada(),
-            e.getFechaEntrega(),
-            e.getSeguimiento().stream().map(ShipmentTrackingDto::from).toList(),
-            e.getCreatedAt(),
-            e.getUpdatedAt()
+            s.getId(),
+            s.getOrderId(),
+            s.getCarrier() != null ? s.getCarrier().getId() : null,
+            s.getCarrier() != null ? s.getCarrier().getName() : null,
+            s.getTrackingNumber(),
+            s.getStatus(),
+            s.getDestinationAddress(),
+            s.getDistrict(),
+            s.getRegion(),
+            s.getEstimatedDate(),
+            s.getDeliveryDate(),
+            s.getTracking().stream().map(ShipmentTrackingDto::from).toList(),
+            s.getCreatedAt(),
+            s.getUpdatedAt()
         );
     }
 }

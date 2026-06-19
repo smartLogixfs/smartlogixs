@@ -19,21 +19,21 @@ public class ShipmentTracking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_seguimiento")
-    private Long idSeguimiento;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_envio", nullable = false)
-    private Shipment envio;
+    private Shipment shipment;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private ShipmentState estado;
+    @Column(name = "estado", nullable = false, length = 20)
+    private ShipmentState status;
 
-    @Column(length = 255)
-    private String ubicacion;
+    @Column(name = "ubicacion", length = 255)
+    private String location;
 
-    @Column(length = 500)
-    private String comentario;
+    @Column(name = "comentario", length = 500)
+    private String comment;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

@@ -18,22 +18,23 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_producto")
-    private Long idProducto;
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
     private String sku;
 
-    @Column(nullable = false, length = 200)
-    private String nombre;
+    // Columnas en la DB siguen en español (Flyway V1) — preservar mapping con @Column.
+    @Column(name = "nombre", nullable = false, length = 200)
+    private String name;
 
-    @Column(columnDefinition = "TEXT")
-    private String descripcion;
+    @Column(name = "descripcion", columnDefinition = "TEXT")
+    private String description;
 
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal precio;
+    @Column(name = "precio", nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
 
-    @Column(nullable = false)
-    private Boolean activo = Boolean.TRUE;
+    @Column(name = "activo", nullable = false)
+    private Boolean active = Boolean.TRUE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

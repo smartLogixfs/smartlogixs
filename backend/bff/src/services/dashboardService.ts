@@ -7,8 +7,8 @@ const ORDER_STATUSES = ["PENDIENTE", "APROBADO", "EN_PREPARACION", "ENVIADO", "E
 export async function dashboard() {
   const [ordersByStatus, lowStock, shipmentsInTransit] = await Promise.all([
     ordersByStatusMap(),
-    inventory.stockBajo().catch(() => []),
-    shipping.listar("EN_RUTA").catch(() => []),
+    inventory.lowStock().catch(() => []),
+    shipping.list("EN_RUTA").catch(() => []),
   ]);
 
   return {
@@ -28,7 +28,7 @@ export async function dashboard() {
 async function ordersByStatusMap() {
   const entries = await Promise.all(
     ORDER_STATUSES.map((status) =>
-      order.listar(status)
+      order.list(status)
         .then((arr) => [status, arr.length])
         .catch(() => [status, null])
     )

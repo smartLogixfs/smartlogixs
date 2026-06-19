@@ -1,4 +1,4 @@
-package cl.smartlogix.usuario.config;
+package cl.smartlogix.user.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +14,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
             .info(new Info()
-                .title("API Usuario SmartLogix")
+                .title("API User SmartLogix")
                 .version("1.0.0")
                 .description("Documentación de la API desarrollada en Spring Boot para SmartLogix")
                 .contact(new Contact()

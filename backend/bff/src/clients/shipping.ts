@@ -5,8 +5,8 @@ const SERVICE = "shipping";
 const base = () => env.MS_SHIPPING_URL;
 
 export const shipping = {
-  crear: (payload: any) => request(SERVICE, base(), "/shipments", { method: "POST", body: payload }),
+  create: (payload: any) => request(SERVICE, base(), "/shipments", { method: "POST", body: payload }),
   getById: (id: number | string) => request(SERVICE, base(), `/shipments/${id}`),
-  getByPedido: (idPedido: number | string) => request(SERVICE, base(), `/shipments/order/${idPedido}`),
-  listar: (estado?: string) => request(SERVICE, base(), `/shipments${estado ? `?status=${estado}` : ""}`),
+  getByOrder: (orderId: number | string) => request(SERVICE, base(), `/shipments/order/${orderId}`),
+  list: (status?: string) => request(SERVICE, base(), `/shipments${status ? `?status=${status}` : ""}`),
 };

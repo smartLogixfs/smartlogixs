@@ -15,17 +15,17 @@ public class Carrier {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_transportista")
-    private Long idTransportista;
+    private Long id;
 
-    @Column(nullable = false, length = 120)
-    private String nombre;
+    @Column(name = "nombre", nullable = false, length = 120)
+    private String name;
 
     @Column(unique = true, length = 20)
     private String rut;
 
     @Column(name = "telefono_contacto", length = 40)
-    private String telefonoContacto;
+    private String contactPhone;
 
-    @Column(nullable = false)
-    private Boolean activo = Boolean.TRUE;
+    @Column(name = "activo", nullable = false)
+    private Boolean active = Boolean.TRUE;
 }

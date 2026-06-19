@@ -2,24 +2,23 @@ package cl.smartlogix.shipping.dto;
 
 import cl.smartlogix.shipping.model.ShipmentTracking;
 import cl.smartlogix.shipping.model.ShipmentState;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.OffsetDateTime;
 
 public record ShipmentTrackingDto(
-    @JsonProperty("trackingId") Long idSeguimiento,
-    @JsonProperty("status") ShipmentState estado,
-    @JsonProperty("location") String ubicacion,
-    @JsonProperty("comment") String comentario,
+    Long trackingId,
+    ShipmentState status,
+    String location,
+    String comment,
     OffsetDateTime createdAt
 ) {
-    public static ShipmentTrackingDto from(ShipmentTracking s) {
+    public static ShipmentTrackingDto from(ShipmentTracking t) {
         return new ShipmentTrackingDto(
-            s.getIdSeguimiento(),
-            s.getEstado(),
-            s.getUbicacion(),
-            s.getComentario(),
-            s.getCreatedAt()
+            t.getId(),
+            t.getStatus(),
+            t.getLocation(),
+            t.getComment(),
+            t.getCreatedAt()
         );
     }
 }

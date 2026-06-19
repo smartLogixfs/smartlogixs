@@ -1,29 +1,28 @@
 package cl.smartlogix.inventory.dto;
 
 import cl.smartlogix.inventory.model.Product;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record ProductDto(
-    @JsonProperty("productId") Long idProducto,
+    Long productId,
     String sku,
-    @JsonProperty("name") String nombre,
-    @JsonProperty("description") String descripcion,
-    @JsonProperty("price") BigDecimal precio,
-    @JsonProperty("active") Boolean activo,
+    String name,
+    String description,
+    BigDecimal price,
+    Boolean active,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
     public static ProductDto from(Product p) {
         return new ProductDto(
-            p.getIdProducto(),
+            p.getId(),
             p.getSku(),
-            p.getNombre(),
-            p.getDescripcion(),
-            p.getPrecio(),
-            p.getActivo(),
+            p.getName(),
+            p.getDescription(),
+            p.getPrice(),
+            p.getActive(),
             p.getCreatedAt(),
             p.getUpdatedAt()
         );

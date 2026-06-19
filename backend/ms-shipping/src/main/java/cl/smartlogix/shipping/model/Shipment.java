@@ -22,41 +22,41 @@ public class Shipment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_envio")
-    private Long idEnvio;
+    private Long id;
 
-    /** ID lógico del pedido en ms-pedido — NO es FK física. */
+    /** ID lógico del pedido en ms-order — NO es FK física. */
     @Column(name = "id_pedido", nullable = false)
-    private Long idPedido;
+    private Long orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_transportista")
-    private Carrier transportista;
+    private Carrier carrier;
 
     @Column(name = "tracking_number", unique = true, length = 60)
     private String trackingNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private ShipmentState estado = ShipmentState.CREADO;
+    @Column(name = "estado", nullable = false, length = 20)
+    private ShipmentState status = ShipmentState.CREADO;
 
     @Column(name = "direccion_destino", nullable = false, length = 255)
-    private String direccionDestino;
+    private String destinationAddress;
 
-    @Column(length = 120)
-    private String comuna;
+    @Column(name = "comuna", length = 120)
+    private String district;
 
     @Column(length = 120)
     private String region;
 
     @Column(name = "fecha_estimada")
-    private LocalDate fechaEstimada;
+    private LocalDate estimatedDate;
 
     @Column(name = "fecha_entrega")
-    private OffsetDateTime fechaEntrega;
+    private OffsetDateTime deliveryDate;
 
-    @OneToMany(mappedBy = "envio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "shipment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private List<ShipmentTracking> seguimiento = new ArrayList<>();
+    private List<ShipmentTracking> tracking = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -76,8 +76,8 @@ public class Shipment {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void addSeguimiento(ShipmentTracking s) {
-        s.setEnvio(this);
-        this.seguimiento.add(s);
+    public void addTracking(ShipmentTracking t) {
+        t.setShipment(this);
+        this.tracking.add(t);
     }
 }

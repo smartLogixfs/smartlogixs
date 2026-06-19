@@ -12,20 +12,20 @@ import java.util.Optional;
 @Repository
 public interface StockRepository extends JpaRepository<Stock, Long> {
 
-    Optional<Stock> findByProducto_IdProductoAndBodega_IdBodega(Long idProducto, Long idBodega);
+    Optional<Stock> findByProduct_IdAndWarehouse_Id(Long productId, Long warehouseId);
 
-    List<Stock> findByProducto_IdProducto(Long idProducto);
+    List<Stock> findByProduct_Id(Long productId);
 
     @Query("""
         SELECT s FROM Stock s
-        WHERE s.cantidad - s.cantReservada <= s.stockMinimo
+        WHERE s.quantity - s.reservedQuantity <= s.minStock
     """)
-    List<Stock> findConStockBajo();
+    List<Stock> findLowStock();
 
     @Query("""
-        SELECT COALESCE(SUM(s.cantidad - s.cantReservada), 0)
+        SELECT COALESCE(SUM(s.quantity - s.reservedQuantity), 0)
         FROM Stock s
-        WHERE s.producto.idProducto = :idProducto
+        WHERE s.product.id = :productId
     """)
-    int sumDisponibleByProducto(@Param("idProducto") Long idProducto);
+    int sumAvailableByProduct(@Param("productId") Long productId);
 }

@@ -6,7 +6,7 @@ import cl.smartlogix.inventory.dto.WarehouseDto;
 import java.util.List;
 
 public interface WarehouseService {
-    WarehouseDto crear(CreateWarehouseRequest req);
+    WarehouseDto create(CreateWarehouseRequest req);
     WarehouseDto findById(Long id);
     List<WarehouseDto> findAll();
 }
