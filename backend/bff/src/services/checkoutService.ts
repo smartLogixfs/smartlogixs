@@ -3,13 +3,13 @@ import { inventory } from "../clients/inventory.js";
 import { shipping } from "../clients/shipping.js";
 import { UpstreamError } from "../clients/httpClient.js";
 
-// Orquestación: crear pedido → reservar stock por ítem → crear envío.
-// Si falla la reserva, se intenta liberar las reservas ya hechas (rollback best-effort).
+// Orchestration: create order → reserve stock per item → create shipment.
+// If reservation fails, attempt to release already-made reservations (best-effort rollback).
 export async function checkout(payload: any) {
-  const pedido = await order.crear({
-    idCliente: payload.idCliente,
-    idMarketplace: payload.idMarketplace,
-    tipo: payload.tipo,
+  const order_ = await order.crear({
+    customerId: payload.customerId,
+    marketplaceId: payload.marketplaceId,
+    type: payload.type,
     items: payload.items,
   });
 
@@ -17,43 +17,43 @@ export async function checkout(payload: any) {
   try {
     for (const item of payload.items) {
       await inventory.reservar({
-        idProducto: item.idProducto,
-        idBodega: payload.idBodega,
-        cantidad: item.cantidad,
-        referenciaPedido: pedido.codigo,
+        productId: item.productId,
+        warehouseId: payload.warehouseId,
+        quantity: item.quantity,
+        orderReference: order_.code,
       });
       reservasOk.push(item);
     }
   } catch (err: any) {
-    await rollbackReservas(reservasOk, payload.idBodega, pedido.codigo);
+    await rollbackReservas(reservasOk, payload.warehouseId, order_.code);
     throw new UpstreamError(
       `Reserva de stock falló: ${err.message}. Reservas previas revertidas.`,
       { status: 409, service: "checkout", body: err.body }
     );
   }
 
-  const envio = await shipping.crear({
-    idPedido: pedido.idPedido,
-    direccionDestino: payload.envio.direccionDestino,
-    comuna: payload.envio.comuna,
-    region: payload.envio.region,
-    fechaEstimada: payload.envio.fechaEstimada,
+  const shipment = await shipping.crear({
+    orderId: order_.orderId,
+    destinationAddress: payload.shipment.destinationAddress,
+    district: payload.shipment.district,
+    region: payload.shipment.region,
+    estimatedDate: payload.shipment.estimatedDate,
   });
 
-  return { pedido, envio };
+  return { order: order_, shipment };
 }
 
-async function rollbackReservas(reservas: any[], idBodega: number | string, referenciaPedido: string) {
+async function rollbackReservas(reservas: any[], warehouseId: number | string, orderReference: string) {
   for (const item of reservas) {
     try {
       await inventory.liberar({
-        idProducto: item.idProducto,
-        idBodega,
-        cantidad: item.cantidad,
-        referenciaPedido,
+        productId: item.productId,
+        warehouseId,
+        quantity: item.quantity,
+        orderReference,
       });
     } catch (err: any) {
-      console.error("[bff] rollback liberar falló:", err.message);
+      console.error("[bff] rollback release failed:", err.message);
     }
   }
 }
