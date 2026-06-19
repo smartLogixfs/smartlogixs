@@ -24,42 +24,42 @@ public class StockController {
         return ResponseEntity.ok(service.get(idProducto, idBodega));
     }
 
-    @GetMapping("/producto/{idProducto}")
+    @GetMapping("/product/{idProducto}")
     public ResponseEntity<List<StockDto>> byProducto(@PathVariable Long idProducto) {
         return ResponseEntity.ok(service.findByProducto(idProducto));
     }
 
-    @GetMapping("/producto/{idProducto}/disponible")
+    @GetMapping("/product/{idProducto}/available")
     public ResponseEntity<Map<String, Integer>> disponibleTotal(@PathVariable Long idProducto) {
         return ResponseEntity.ok(Map.of("disponible", service.disponibleTotal(idProducto)));
     }
 
-    @GetMapping("/bajo")
+    @GetMapping("/low")
     public ResponseEntity<List<StockDto>> stockBajo() {
         return ResponseEntity.ok(service.findConStockBajo());
     }
 
-    @GetMapping("/{idStock}/historial")
+    @GetMapping("/{idStock}/history")
     public ResponseEntity<List<StockMovementDto>> historial(@PathVariable Long idStock) {
         return ResponseEntity.ok(service.historial(idStock));
     }
 
-    @PostMapping("/entrada")
+    @PostMapping("/in")
     public ResponseEntity<StockDto> entrada(@Valid @RequestBody StockMovementRequest req) {
         return ResponseEntity.ok(service.entrada(req));
     }
 
-    @PostMapping("/salida")
+    @PostMapping("/out")
     public ResponseEntity<StockDto> salida(@Valid @RequestBody StockMovementRequest req) {
         return ResponseEntity.ok(service.salida(req));
     }
 
-    @PostMapping("/reservar")
+    @PostMapping("/reserve")
     public ResponseEntity<StockDto> reservar(@Valid @RequestBody StockMovementRequest req) {
         return ResponseEntity.ok(service.reservar(req));
     }
 
-    @PostMapping("/liberar")
+    @PostMapping("/release")
     public ResponseEntity<StockDto> liberar(@Valid @RequestBody StockMovementRequest req) {
         return ResponseEntity.ok(service.liberar(req));
     }

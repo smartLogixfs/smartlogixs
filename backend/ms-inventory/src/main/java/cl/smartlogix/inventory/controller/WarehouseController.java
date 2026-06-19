@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/bodegas")
+@RequestMapping("/warehouses")
 @RequiredArgsConstructor
 public class WarehouseController {
 
@@ -21,7 +21,7 @@ public class WarehouseController {
     @PostMapping
     public ResponseEntity<WarehouseDto> crear(@Valid @RequestBody CreateWarehouseRequest req) {
         WarehouseDto creada = service.crear(req);
-        return ResponseEntity.created(URI.create("/bodegas/" + creada.idBodega())).body(creada);
+        return ResponseEntity.created(URI.create("/warehouses/" + creada.idBodega())).body(creada);
     }
 
     @GetMapping("/{id}")

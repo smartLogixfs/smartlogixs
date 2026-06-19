@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-// Path: /productos — dominio en español, clase en inglés (mismo patrón que OrderController).
+// Path: /products — dominio en español, clase en inglés (mismo patrón que OrderController).
 @RestController
-@RequestMapping("/productos")
+@RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -23,7 +23,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductDto> crear(@Valid @RequestBody CreateProductRequest req) {
         ProductDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/productos/" + creado.idProducto())).body(creado);
+        return ResponseEntity.created(URI.create("/products/" + creado.idProducto())).body(creado);
     }
 
     @GetMapping("/{id}")

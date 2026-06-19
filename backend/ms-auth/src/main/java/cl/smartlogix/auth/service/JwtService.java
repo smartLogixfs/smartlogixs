@@ -36,8 +36,8 @@ public class JwtService {
         Instant expiration = now.plus(accessTokenMinutes, ChronoUnit.MINUTES);
 
         String scopes = "ADMIN".equalsIgnoreCase(user.getRole())
-                ? "read:inventario write:inventario read:pedidos write:pedidos read:envios write:envios read:usuarios write:usuarios"
-                : "read:inventario read:pedidos read:envios";
+                ? "read:inventory write:inventory read:orders write:orders read:shipments write:shipments read:users write:users"
+                : "read:inventory read:orders read:shipments";
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .id(UUID.randomUUID().toString())

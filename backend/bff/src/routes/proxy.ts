@@ -17,21 +17,21 @@ const restreamBody = (proxyReq: ClientRequest, req: Request) => {
 };
 
 router.use(
-  "/inventario",
+  "/inventory",
   createProxyMiddleware({
     target: env.MS_INVENTORY_URL,
     changeOrigin: true,
-    pathRewrite: { "^/inventario": "" },
+    pathRewrite: { "^/inventory": "" },
     on: { proxyReq: restreamBody },
   })
 );
 
-// Express strippea el prefix antes de pasar al middleware: /pedidos → /, /pedidos/123 → /123.
+// Express strippea el prefix antes de pasar al middleware: /orders → /, /orders/123 → /123.
 // Re-agregamos el prefix usando req.originalUrl para evitar trailing slashes (Spring Boot 4
-// no hace match de trailing slash por defecto: /pedidos OK, /pedidos/ → 404).
-// /inventario pasa tal cual porque el MS expone /productos, /bodegas, /stock (sin prefix común).
+// no hace match de trailing slash por defecto: /orders OK, /orders/ → 404).
+// /inventory pasa tal cual porque el MS expone /products, /warehouses, /stock (sin prefix común).
 router.use(
-  "/pedidos",
+  "/orders",
   createProxyMiddleware({
     target: env.MS_ORDER_URL,
     changeOrigin: true,
@@ -41,7 +41,7 @@ router.use(
 );
 
 router.use(
-  "/envios",
+  "/shipments",
   createProxyMiddleware({
     target: env.MS_SHIPPING_URL,
     changeOrigin: true,
@@ -51,7 +51,7 @@ router.use(
 );
 
 router.use(
-  "/usuarios",
+  "/users",
   createProxyMiddleware({
     target: env.MS_USER_URL,
     changeOrigin: true,
