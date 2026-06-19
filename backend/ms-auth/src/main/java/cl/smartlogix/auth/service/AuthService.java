@@ -1,10 +1,10 @@
-package com.example.msauth.service;
+package cl.smartlogix.auth.service;
 
-import com.example.msauth.domain.UserAccount;
-import com.example.msauth.dto.AuthResponse;
-import com.example.msauth.dto.LoginRequest;
-import com.example.msauth.dto.RegisterRequest;
-import com.example.msauth.repository.UserAccountRepository;
+import cl.smartlogix.auth.domain.UserAccount;
+import cl.smartlogix.auth.dto.AuthResponse;
+import cl.smartlogix.auth.dto.LoginRequest;
+import cl.smartlogix.auth.dto.RegisterRequest;
+import cl.smartlogix.auth.repository.UserAccountRepository;
 import java.time.Instant;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;

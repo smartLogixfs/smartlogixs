@@ -107,7 +107,25 @@ Sobre el tráfico que Traefik le entrega, KrakenD aplica:
 
 - `endpoints[]` — cada uno con `endpoint` (path expuesto) y `backend[]` (host destino dentro de la red Docker `internal`)
 - `extra_config` — middlewares globales (CORS, JWT, logging)
-- JWT validator preparado, hoy pasa todo sin autenticación para facilitar desarrollo
+- JWT validator activo: cada endpoint protegido valida tokens RS256 contra el JWKS de `ms-auth` (`http://ms-auth:8081/.well-known/jwks.json`).
+
+### 4.1 Seguridad de JWK (dev vs prod)
+
+Cada validador JWT en `krakend.json` declara:
+
+```json
+"disable_jwk_security": true
+```
+
+Esto desactiva la **validación TLS del endpoint JWKS**, necesario en dev porque `ms-auth` expone JWKS por HTTP plano (`http://ms-auth:8081/.well-known/jwks.json`) dentro de la red interna Docker/k8s.
+
+**En producción** el JWKS debe servirse por **HTTPS** y este flag debe quedar:
+
+```json
+"disable_jwk_security": false
+```
+
+Razon: con la bandera en `true`, un atacante en la red interna podría servir un JWKS malicioso sin advertencia de cert; con `false`, KrakenD exige cert válido y solo confía en JWKS autentico. Aplica a todos los endpoints autenticados — buscar/reemplazar global cuando se prepare el entorno productivo.
 
 ## 5. Cómo ejecutar
 

@@ -1,12 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git fetch *)",
-      "Bash(git rev-list *)",
-      "Bash(git merge-tree *)",
-      "Bash(docker compose *)",
-      "Bash(docker version *)",
-      "Bash(netstat -ano)"
+      "Bash(xargs grep *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(mkdir -p backend/ms-auth/src/main/java/cl/smartlogix)",
+      "Bash(git mv *)",
+      "Bash(rmdir backend/ms-auth/src/main/java/com/example)",
+      "Bash(rmdir backend/ms-auth/src/main/java/com)",
+      "Bash(git branch *)"
     ]
   }
 }

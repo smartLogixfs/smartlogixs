@@ -1,4 +1,4 @@
-package com.example.msauth.domain;
+package cl.smartlogix.auth.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

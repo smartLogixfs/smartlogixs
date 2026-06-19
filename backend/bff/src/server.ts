@@ -3,6 +3,7 @@ import morgan from "morgan";
 
 import { env } from "./config/env.js";
 import healthRouter from "./routes/health.js";
+import docsRouter from "./routes/docs.js";
 import checkoutRouter from "./routes/checkout.js";
 import ordersRouter from "./routes/orders.js";
 import dashboardRouter from "./routes/dashboard.js";
@@ -14,6 +15,9 @@ const app = express();
 
 app.use(morgan("combined"));
 app.use(express.json());
+
+// Documentacion OpenAPI / Swagger UI (antes del proxy para que no se redirija).
+app.use(docsRouter);
 
 // Endpoints propios del BFF (compuestos + health) van antes del proxy.
 app.use(healthRouter);
@@ -35,4 +39,5 @@ app.listen(env.PORT, "0.0.0.0", () => {
   console.log(`  -> shipping:  ${env.MS_SHIPPING_URL}`);
   console.log(`  -> user:      ${env.MS_USER_URL}`);
   console.log(`  -> auth:      ${env.MS_AUTH_URL}`);
+  console.log(`  -> docs:      http://localhost:${env.PORT}/docs`);
 });

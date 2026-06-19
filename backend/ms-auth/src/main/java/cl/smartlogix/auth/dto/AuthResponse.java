@@ -1,4 +1,4 @@
-package com.example.msauth.dto;
+package cl.smartlogix.auth.dto;
 
 public record AuthResponse(
         String accessToken,

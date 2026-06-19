@@ -16,14 +16,6 @@
       "prefix": "[KRAKEND]",
       "syslog": false,
       "stdout": true
-    },
-    "security/cors": {
-      "allow_origins": ["http://localhost:5173"],
-      "allow_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      "allow_headers": ["Origin", "Authorization", "Content-Type", "Accept"],
-      "expose_headers": ["Content-Length", "X-Krakend"],
-      "allow_credentials": false,
-      "max_age": "12h"
     }
   },
 
@@ -325,6 +317,72 @@
       "backend": [
         {
           "url_pattern": "/dashboard",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/inventario/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:inventario"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/inventario/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/pedidos/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:pedidos"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/pedidos/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/envios/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:envios"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/envios/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }

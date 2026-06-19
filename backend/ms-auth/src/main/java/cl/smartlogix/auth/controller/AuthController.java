@@ -1,9 +1,9 @@
-package com.example.msauth.controller;
+package cl.smartlogix.auth.controller;
 
-import com.example.msauth.dto.AuthResponse;
-import com.example.msauth.dto.LoginRequest;
-import com.example.msauth.dto.RegisterRequest;
-import com.example.msauth.service.AuthService;
+import cl.smartlogix.auth.dto.AuthResponse;
+import cl.smartlogix.auth.dto.LoginRequest;
+import cl.smartlogix.auth.dto.RegisterRequest;
+import cl.smartlogix.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

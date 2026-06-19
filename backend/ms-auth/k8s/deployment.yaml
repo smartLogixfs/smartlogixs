@@ -27,6 +27,11 @@ spec:
             - name: http
               containerPort: 8081
           env:
+            - name: POSTGRES_AUTH_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: POSTGRES_AUTH_DB
             - name: SERVER_PORT
               value: "8081"
             - name: DB_URL
@@ -41,11 +46,6 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_AUTH_PASSWORD
-            - name: POSTGRES_AUTH_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: smartlogix-config
-                  key: POSTGRES_AUTH_DB
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -56,6 +56,14 @@ spec:
                 configMapKeyRef:
                   name: smartlogix-config
                   key: JWT_ISSUER
+            - name: JWT_PRIVATE_KEY_PATH
+              value: /app/keys/private_key.pem
+            - name: JWT_PUBLIC_KEY_PATH
+              value: /app/keys/public_key.pem
+          volumeMounts:
+            - name: keys-volume
+              mountPath: /app/keys
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -63,3 +71,13 @@ spec:
             limits:
               cpu: 1000m
               memory: 768Mi
+      volumes:
+        - name: keys-volume
+          secret:
+            secretName: smartlogix-keys
+            items:
+              - key: private_key.pem
+                path: private_key.pem
+              - key: public_key.pem
+                path: public_key.pem
+
