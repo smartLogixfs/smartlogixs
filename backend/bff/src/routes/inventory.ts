@@ -39,7 +39,7 @@ async function requestRaw(method: string, path: string, body: any): Promise<any>
   return res.json();
 }
 
-router.get("/inventario/productos-con-stock", async (_req: Request, res: Response, next: NextFunction) => {
+router.get("/inventory/products-with-stock", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const products = await inventory.productos();
     const result = await Promise.all(
@@ -73,7 +73,7 @@ router.get("/inventario/productos-con-stock", async (_req: Request, res: Respons
 });
 
 // Intercept product creation to automatically set up initial stock
-router.post("/inventario/productos", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/inventory/products", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, sku, category, quantity, minStock, location } = req.body;
     
@@ -85,13 +85,13 @@ router.post("/inventario/productos", async (req: Request, res: Response, next: N
       precio: 100.0
     };
 
-    const createdProduct = await requestRaw("POST", "/productos", productPayload);
+    const createdProduct = await requestRaw("POST", "/products", productPayload);
     const idProducto = createdProduct.idProducto;
 
     // Set up initial stock if quantity is provided
     if (idProducto && quantity !== undefined) {
       const warehouseId = getWarehouseId(location || "");
-      await requestRaw("POST", "/stock/entrada", {
+      await requestRaw("POST", "/stock/in", {
         idProducto,
         idBodega: warehouseId,
         cantidad: Number(quantity) || 0,

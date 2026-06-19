@@ -7,21 +7,21 @@ kind: Kustomization
 namespace: smartlogix
 images:
   - name: smartlogix/api-gateway
-    newTag: fix-k8s-v2
+    newTag: english-v2
   - name: smartlogix/bff
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/frontend
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/ms-auth
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/ms-inventory
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/ms-order
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/ms-shipping
-    newTag: fix-k8s
+    newTag: english
   - name: smartlogix/ms-user
-    newTag: fix-k8s
+    newTag: english
 resources:
   # 1) Recursos compartidos (namespace + ConfigMap)
   - base

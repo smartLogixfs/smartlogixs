@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-// Path: /pedidos — el dominio del proyecto es Pedidos (es lo que enruta el BFF/KrakenD).
+// Path: /orders — el dominio del proyecto es Pedidos (es lo que enruta el BFF/KrakenD).
 // El nombre de la clase se mantiene como OrderController por convención del scaffolding.
 @RestController
-@RequestMapping("/pedidos")
+@RequestMapping("/orders")
 @RequiredArgsConstructor
 public class OrderController {
 
@@ -26,7 +26,7 @@ public class OrderController {
     public ResponseEntity<OrderDto> crear(@Valid @RequestBody CreateOrderRequest req) {
         OrderDto creado = service.crear(req);
         return ResponseEntity
-            .created(URI.create("/pedidos/" + creado.idPedido()))
+            .created(URI.create("/orders/" + creado.idPedido()))
             .body(creado);
     }
 
@@ -35,12 +35,12 @@ public class OrderController {
         return ResponseEntity.ok(service.findById(id));
     }
 
-    @GetMapping("/codigo/{codigo}")
+    @GetMapping("/code/{codigo}")
     public ResponseEntity<OrderDto> getByCodigo(@PathVariable String codigo) {
         return ResponseEntity.ok(service.findByCodigo(codigo));
     }
 
-    @GetMapping("/cliente/{idCliente}")
+    @GetMapping("/customer/{idCliente}")
     public ResponseEntity<List<OrderDto>> getByCliente(@PathVariable String idCliente) {
         return ResponseEntity.ok(service.findByCliente(idCliente));
     }
@@ -51,7 +51,7 @@ public class OrderController {
         return ResponseEntity.ok(data);
     }
 
-    @PatchMapping("/{id}/estado")
+    @PatchMapping("/{id}/status")
     public ResponseEntity<OrderDto> cambiarEstado(@PathVariable Long id,
                                                   @Valid @RequestBody UpdateOrderState req) {
         return ResponseEntity.ok(service.cambiarEstado(id, req));

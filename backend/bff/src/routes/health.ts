@@ -11,8 +11,8 @@ router.get("/", (_req: Request, res: Response) => {
     service: "smartlogix-bff",
     version: "0.1.0",
     endpoints: {
-      compuestos: ["GET /pedidos/:id/full", "POST /checkout", "GET /dashboard"],
-      proxy: ["/inventario/*", "/pedidos/*", "/envios/*", "/usuarios/*", "/auth/*"],
+      compuestos: ["GET /orders/:id/full", "POST /checkout", "GET /dashboard"],
+      proxy: ["/inventory/*", "/orders/*", "/shipments/*", "/users/*", "/auth/*"],
     },
   });
 });

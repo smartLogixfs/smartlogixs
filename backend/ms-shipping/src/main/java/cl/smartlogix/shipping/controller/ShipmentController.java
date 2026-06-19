@@ -16,7 +16,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/envios")
+@RequestMapping("/shipments")
 @RequiredArgsConstructor
 public class ShipmentController {
 
@@ -25,7 +25,7 @@ public class ShipmentController {
     @PostMapping
     public ResponseEntity<ShipmentDto> crear(@Valid @RequestBody CreateShipmentRequest req) {
         ShipmentDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/envios/" + creado.idEnvio())).body(creado);
+        return ResponseEntity.created(URI.create("/shipments/" + creado.idEnvio())).body(creado);
     }
 
     @GetMapping("/{id}")
@@ -38,7 +38,7 @@ public class ShipmentController {
         return ResponseEntity.ok(service.findByTracking(trackingNumber));
     }
 
-    @GetMapping("/pedido/{idPedido}")
+    @GetMapping("/order/{idPedido}")
     public ResponseEntity<List<ShipmentDto>> getByPedido(@PathVariable Long idPedido) {
         return ResponseEntity.ok(service.findByPedido(idPedido));
     }
@@ -49,18 +49,18 @@ public class ShipmentController {
         return ResponseEntity.ok(data);
     }
 
-    @GetMapping("/{id}/seguimiento")
+    @GetMapping("/{id}/tracking-history")
     public ResponseEntity<List<ShipmentTrackingDto>> historial(@PathVariable Long id) {
         return ResponseEntity.ok(service.historial(id));
     }
 
-    @PatchMapping("/{id}/transportista")
+    @PatchMapping("/{id}/carrier")
     public ResponseEntity<ShipmentDto> asignar(@PathVariable Long id,
                                                @Valid @RequestBody AssingCarierRequest req) {
         return ResponseEntity.ok(service.asignarTransportista(id, req));
     }
 
-    @PatchMapping("/{id}/estado")
+    @PatchMapping("/{id}/status")
     public ResponseEntity<ShipmentDto> cambiarEstado(@PathVariable Long id,
                                                      @Valid @RequestBody UpdateShipmentRStatusRequest req) {
         return ResponseEntity.ok(service.cambiarEstado(id, req));

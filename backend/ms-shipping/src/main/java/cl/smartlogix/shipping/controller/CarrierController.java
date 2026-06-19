@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/transportistas")
+@RequestMapping("/carriers")
 @RequiredArgsConstructor
 public class CarrierController {
 
@@ -21,7 +21,7 @@ public class CarrierController {
     @PostMapping
     public ResponseEntity<CarrierDto> crear(@Valid @RequestBody CreateCarrierRequest req) {
         CarrierDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/transportistas/" + creado.idTransportista())).body(creado);
+        return ResponseEntity.created(URI.create("/carriers/" + creado.idTransportista())).body(creado);
     }
 
     @GetMapping("/{id}")
