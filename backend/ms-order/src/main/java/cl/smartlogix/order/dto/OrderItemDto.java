@@ -1,25 +1,24 @@
 package cl.smartlogix.order.dto;
 
 import cl.smartlogix.order.model.OrderItem;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 
 public record OrderItemDto(
-    @JsonProperty("itemId") Long idItem,
-    @JsonProperty("productId") Long idProducto,
+    Long itemId,
+    Long productId,
     String sku,
-    @JsonProperty("quantity") Integer cantidad,
-    @JsonProperty("unitPrice") BigDecimal precioUnitario,
+    Integer quantity,
+    BigDecimal unitPrice,
     BigDecimal subtotal
 ) {
     public static OrderItemDto from(OrderItem item) {
         return new OrderItemDto(
-            item.getIdItem(),
-            item.getIdProducto(),
+            item.getId(),
+            item.getProductId(),
             item.getSku(),
-            item.getCantidad(),
-            item.getPrecioUnitario(),
+            item.getQuantity(),
+            item.getUnitPrice(),
             item.getSubtotal()
         );
     }

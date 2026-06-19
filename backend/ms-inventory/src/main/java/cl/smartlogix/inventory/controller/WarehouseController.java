@@ -19,9 +19,9 @@ public class WarehouseController {
     private final WarehouseService service;
 
     @PostMapping
-    public ResponseEntity<WarehouseDto> crear(@Valid @RequestBody CreateWarehouseRequest req) {
-        WarehouseDto creada = service.crear(req);
-        return ResponseEntity.created(URI.create("/warehouses/" + creada.idBodega())).body(creada);
+    public ResponseEntity<WarehouseDto> create(@Valid @RequestBody CreateWarehouseRequest req) {
+        WarehouseDto created = service.create(req);
+        return ResponseEntity.created(URI.create("/warehouses/" + created.warehouseId())).body(created);
     }
 
     @GetMapping("/{id}")
@@ -30,7 +30,7 @@ public class WarehouseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<WarehouseDto>> listar() {
+    public ResponseEntity<List<WarehouseDto>> list() {
         return ResponseEntity.ok(service.findAll());
     }
 }

@@ -23,9 +23,9 @@ public class ShipmentController {
     private final ShipmentService service;
 
     @PostMapping
-    public ResponseEntity<ShipmentDto> crear(@Valid @RequestBody CreateShipmentRequest req) {
-        ShipmentDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/shipments/" + creado.idEnvio())).body(creado);
+    public ResponseEntity<ShipmentDto> create(@Valid @RequestBody CreateShipmentRequest req) {
+        ShipmentDto created = service.create(req);
+        return ResponseEntity.created(URI.create("/shipments/" + created.shipmentId())).body(created);
     }
 
     @GetMapping("/{id}")
@@ -38,31 +38,31 @@ public class ShipmentController {
         return ResponseEntity.ok(service.findByTracking(trackingNumber));
     }
 
-    @GetMapping("/order/{idPedido}")
-    public ResponseEntity<List<ShipmentDto>> getByPedido(@PathVariable Long idPedido) {
-        return ResponseEntity.ok(service.findByPedido(idPedido));
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<List<ShipmentDto>> getByOrder(@PathVariable Long orderId) {
+        return ResponseEntity.ok(service.findByOrder(orderId));
     }
 
     @GetMapping
-    public ResponseEntity<List<ShipmentDto>> listar(@RequestParam(required = false) ShipmentState estado) {
-        List<ShipmentDto> data = (estado == null) ? service.findAll() : service.findByEstado(estado);
+    public ResponseEntity<List<ShipmentDto>> list(@RequestParam(required = false) ShipmentState status) {
+        List<ShipmentDto> data = (status == null) ? service.findAll() : service.findByStatus(status);
         return ResponseEntity.ok(data);
     }
 
     @GetMapping("/{id}/tracking-history")
-    public ResponseEntity<List<ShipmentTrackingDto>> historial(@PathVariable Long id) {
-        return ResponseEntity.ok(service.historial(id));
+    public ResponseEntity<List<ShipmentTrackingDto>> history(@PathVariable Long id) {
+        return ResponseEntity.ok(service.history(id));
     }
 
     @PatchMapping("/{id}/carrier")
-    public ResponseEntity<ShipmentDto> asignar(@PathVariable Long id,
-                                               @Valid @RequestBody AssingCarierRequest req) {
-        return ResponseEntity.ok(service.asignarTransportista(id, req));
+    public ResponseEntity<ShipmentDto> assignCarrier(@PathVariable Long id,
+                                                    @Valid @RequestBody AssingCarierRequest req) {
+        return ResponseEntity.ok(service.assignCarrier(id, req));
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ShipmentDto> cambiarEstado(@PathVariable Long id,
-                                                     @Valid @RequestBody UpdateShipmentRStatusRequest req) {
-        return ResponseEntity.ok(service.cambiarEstado(id, req));
+    public ResponseEntity<ShipmentDto> changeStatus(@PathVariable Long id,
+                                                    @Valid @RequestBody UpdateShipmentRStatusRequest req) {
+        return ResponseEntity.ok(service.changeStatus(id, req));
     }
 }

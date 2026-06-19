@@ -19,22 +19,22 @@ public class OrderHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_historial")
-    private Long idHistorial;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_pedido", nullable = false)
-    private Order pedido;
+    private Order order;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_anterior", length = 20)
-    private OrderStatus estadoAnterior;
+    private OrderStatus previousStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_nuevo", nullable = false, length = 20)
-    private OrderStatus estadoNuevo;
+    private OrderStatus newStatus;
 
-    @Column(length = 255)
-    private String motivo;
+    @Column(name = "motivo", length = 255)
+    private String reason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

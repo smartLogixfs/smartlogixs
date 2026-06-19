@@ -15,14 +15,14 @@ public class Warehouse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_bodega")
-    private Long idBodega;
+    private Long id;
 
-    @Column(nullable = false, length = 120)
-    private String nombre;
+    @Column(name = "nombre", nullable = false, length = 120)
+    private String name;
 
-    @Column(length = 255)
-    private String ubicacion;
+    @Column(name = "ubicacion", length = 255)
+    private String location;
 
-    @Column(nullable = false)
-    private Boolean activo = Boolean.TRUE;
+    @Column(name = "activo", nullable = false)
+    private Boolean active = Boolean.TRUE;
 }

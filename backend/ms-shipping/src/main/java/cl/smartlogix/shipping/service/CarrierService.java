@@ -6,8 +6,8 @@ import cl.smartlogix.shipping.dto.CreateCarrierRequest;
 import java.util.List;
 
 public interface CarrierService {
-    CarrierDto crear(CreateCarrierRequest req);
+    CarrierDto create(CreateCarrierRequest req);
     CarrierDto findById(Long id);
     List<CarrierDto> findAll();
-    List<CarrierDto> findActivos();
+    List<CarrierDto> findActive();
 }

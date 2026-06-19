@@ -19,24 +19,24 @@ public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_item")
-    private Long idItem;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_pedido", nullable = false)
-    private Order pedido;
+    private Order order;
 
-    /** ID lógico del producto en ms-inventario — NO es FK física. */
+    /** ID lógico del producto en ms-inventory — NO es FK física. */
     @Column(name = "id_producto", nullable = false)
-    private Long idProducto;
+    private Long productId;
 
     @Column(nullable = false, length = 64)
     private String sku;
 
-    @Column(nullable = false)
-    private Integer cantidad;
+    @Column(name = "cantidad", nullable = false)
+    private Integer quantity;
 
     @Column(name = "precio_unitario", nullable = false, precision = 12, scale = 2)
-    private BigDecimal precioUnitario;
+    private BigDecimal unitPrice;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;

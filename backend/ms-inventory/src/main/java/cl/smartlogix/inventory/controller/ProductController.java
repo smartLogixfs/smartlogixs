@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-// Path: /products — dominio en español, clase en inglés (mismo patrón que OrderController).
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
@@ -21,9 +20,9 @@ public class ProductController {
     private final ProductService service;
 
     @PostMapping
-    public ResponseEntity<ProductDto> crear(@Valid @RequestBody CreateProductRequest req) {
-        ProductDto creado = service.crear(req);
-        return ResponseEntity.created(URI.create("/products/" + creado.idProducto())).body(creado);
+    public ResponseEntity<ProductDto> create(@Valid @RequestBody CreateProductRequest req) {
+        ProductDto created = service.create(req);
+        return ResponseEntity.created(URI.create("/products/" + created.productId())).body(created);
     }
 
     @GetMapping("/{id}")
@@ -37,13 +36,13 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> listar() {
+    public ResponseEntity<List<ProductDto>> list() {
         return ResponseEntity.ok(service.findAll());
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ProductDto> actualizar(@PathVariable Long id,
-                                                 @Valid @RequestBody UpdateProductRequest req) {
-        return ResponseEntity.ok(service.actualizar(id, req));
+    public ResponseEntity<ProductDto> update(@PathVariable Long id,
+                                             @Valid @RequestBody UpdateProductRequest req) {
+        return ResponseEntity.ok(service.update(id, req));
     }
 }

@@ -20,23 +20,23 @@ public class CarrierServiceImpl implements CarrierService {
     private final CarrierRepository repository;
 
     @Override
-    public CarrierDto crear(CreateCarrierRequest req) {
+    public CarrierDto create(CreateCarrierRequest req) {
         if (req.rut() != null && repository.findByRut(req.rut()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "RUT ya registrado: " + req.rut());
         }
-        Carrier t = Carrier.builder()
-            .nombre(req.nombre())
+        Carrier c = Carrier.builder()
+            .name(req.name())
             .rut(req.rut())
-            .telefonoContacto(req.telefonoContacto())
-            .activo(Boolean.TRUE)
+            .contactPhone(req.contactPhone())
+            .active(Boolean.TRUE)
             .build();
-        return CarrierDto.from(repository.save(t));
+        return CarrierDto.from(repository.save(c));
     }
 
     @Override
     @Transactional(readOnly = true)
     public CarrierDto findById(Long id) {
-        return CarrierDto.from(buscar(id));
+        return CarrierDto.from(find(id));
     }
 
     @Override
@@ -47,11 +47,11 @@ public class CarrierServiceImpl implements CarrierService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CarrierDto> findActivos() {
-        return repository.findByActivoTrue().stream().map(CarrierDto::from).toList();
+    public List<CarrierDto> findActive() {
+        return repository.findByActiveTrue().stream().map(CarrierDto::from).toList();
     }
 
-    private Carrier buscar(Long id) {
+    private Carrier find(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transportista no encontrado: " + id));
     }

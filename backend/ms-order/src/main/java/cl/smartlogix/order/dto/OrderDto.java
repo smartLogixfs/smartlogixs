@@ -3,40 +3,39 @@ package cl.smartlogix.order.dto;
 import cl.smartlogix.order.model.OrderStatus;
 import cl.smartlogix.order.model.Order;
 import cl.smartlogix.order.model.OrderType;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public record OrderDto(
-    @JsonProperty("orderId") Long idPedido,
-    @JsonProperty("code") String codigo,
-    @JsonProperty("type") OrderType tipo,
-    @JsonProperty("status") OrderStatus estado,
-    @JsonProperty("customerId") String idCliente,
-    @JsonProperty("marketplaceId") String idMarketplace,
+    Long orderId,
+    String code,
+    OrderType type,
+    OrderStatus status,
+    String customerId,
+    String marketplaceId,
     BigDecimal subtotal,
-    @JsonProperty("tax") BigDecimal impuesto,
+    BigDecimal tax,
     BigDecimal total,
     List<OrderItemDto> items,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
-    public static OrderDto from(Order p) {
+    public static OrderDto from(Order o) {
         return new OrderDto(
-            p.getIdPedido(),
-            p.getCodigo(),
-            p.getTipo(),
-            p.getEstado(),
-            p.getIdCliente(),
-            p.getIdMarketplace(),
-            p.getSubtotal(),
-            p.getImpuesto(),
-            p.getTotal(),
-            p.getItems().stream().map(OrderItemDto::from).toList(),
-            p.getCreatedAt(),
-            p.getUpdatedAt()
+            o.getId(),
+            o.getCode(),
+            o.getType(),
+            o.getStatus(),
+            o.getCustomerId(),
+            o.getMarketplaceId(),
+            o.getSubtotal(),
+            o.getTax(),
+            o.getTotal(),
+            o.getItems().stream().map(OrderItemDto::from).toList(),
+            o.getCreatedAt(),
+            o.getUpdatedAt()
         );
     }
 }

@@ -1,4 +1,4 @@
-package cl.smartlogix.usuario.model;
+package cl.smartlogix.user.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,31 +15,32 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "usuarios")
-public class Usuario {
-    
+public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "email", nullable = false, unique = true)
-    private String correo;
+    private String email;
 
+    // La columna en DB sigue siendo `nombre` (Flyway V1) — preservar mapping.
     @Column(name = "nombre", nullable = false)
-    private String nombre;
+    private String name;
 
     @Column(name = "password", nullable = false)
     private String password;
 
     @Column(name = "telefono", nullable = false)
-    private String telefono;
+    private String phone;
 
     @Column(name = "direccion", nullable = false)
-    private String direccion;
+    private String address;
 
     @Column(name = "region", nullable = false)
     private String region;
 
     @Column(name = "comuna", nullable = false)
-    private String comuna;
+    private String district;
 
 }

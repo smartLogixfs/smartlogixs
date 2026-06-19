@@ -1,6 +1,5 @@
 package cl.smartlogix.inventory.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,16 +12,13 @@ public record CreateProductRequest(
     @Size(max = 64)
     String sku,
 
-    @JsonProperty("name")
     @NotBlank(message = "name es obligatorio")
     @Size(max = 200)
-    String nombre,
+    String name,
 
-    @JsonProperty("description")
-    String descripcion,
+    String description,
 
-    @JsonProperty("price")
     @NotNull
     @DecimalMin(value = "0.0", message = "price debe ser >= 0")
-    BigDecimal precio
+    BigDecimal price
 ) {}

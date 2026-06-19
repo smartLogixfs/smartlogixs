@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-// Path: /orders — el dominio del proyecto es Pedidos (es lo que enruta el BFF/KrakenD).
-// El nombre de la clase se mantiene como OrderController por convención del scaffolding.
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -23,11 +21,11 @@ public class OrderController {
     private final OrderService service;
 
     @PostMapping
-    public ResponseEntity<OrderDto> crear(@Valid @RequestBody CreateOrderRequest req) {
-        OrderDto creado = service.crear(req);
+    public ResponseEntity<OrderDto> create(@Valid @RequestBody CreateOrderRequest req) {
+        OrderDto created = service.create(req);
         return ResponseEntity
-            .created(URI.create("/orders/" + creado.idPedido()))
-            .body(creado);
+            .created(URI.create("/orders/" + created.orderId()))
+            .body(created);
     }
 
     @GetMapping("/{id}")
@@ -35,25 +33,25 @@ public class OrderController {
         return ResponseEntity.ok(service.findById(id));
     }
 
-    @GetMapping("/code/{codigo}")
-    public ResponseEntity<OrderDto> getByCodigo(@PathVariable String codigo) {
-        return ResponseEntity.ok(service.findByCodigo(codigo));
+    @GetMapping("/code/{code}")
+    public ResponseEntity<OrderDto> getByCode(@PathVariable String code) {
+        return ResponseEntity.ok(service.findByCode(code));
     }
 
-    @GetMapping("/customer/{idCliente}")
-    public ResponseEntity<List<OrderDto>> getByCliente(@PathVariable String idCliente) {
-        return ResponseEntity.ok(service.findByCliente(idCliente));
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<OrderDto>> getByCustomer(@PathVariable String customerId) {
+        return ResponseEntity.ok(service.findByCustomer(customerId));
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> listar(@RequestParam(required = false) OrderStatus estado) {
-        List<OrderDto> data = (estado == null) ? service.findAll() : service.findByEstado(estado);
+    public ResponseEntity<List<OrderDto>> list(@RequestParam(required = false) OrderStatus status) {
+        List<OrderDto> data = (status == null) ? service.findAll() : service.findByStatus(status);
         return ResponseEntity.ok(data);
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<OrderDto> cambiarEstado(@PathVariable Long id,
-                                                  @Valid @RequestBody UpdateOrderState req) {
-        return ResponseEntity.ok(service.cambiarEstado(id, req));
+    public ResponseEntity<OrderDto> changeStatus(@PathVariable Long id,
+                                                 @Valid @RequestBody UpdateOrderState req) {
+        return ResponseEntity.ok(service.changeStatus(id, req));
     }
 }

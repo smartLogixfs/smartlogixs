@@ -1,12 +1,10 @@
-package cl.smartlogix.usuario.dto;
+package cl.smartlogix.user.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-public record LoginDto(
-    @JsonProperty("email")
+public record LoginRequest(
     @Schema(description = "Correo del usuario")
-    String correo,
+    String email,
 
     @Schema(description = "Contraseña del usuario")
     String password

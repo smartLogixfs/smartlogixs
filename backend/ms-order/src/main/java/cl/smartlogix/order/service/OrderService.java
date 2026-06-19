@@ -8,11 +8,11 @@ import cl.smartlogix.order.model.OrderStatus;
 import java.util.List;
 
 public interface OrderService {
-    OrderDto crear(CreateOrderRequest req);
+    OrderDto create(CreateOrderRequest req);
     OrderDto findById(Long id);
-    OrderDto findByCodigo(String codigo);
+    OrderDto findByCode(String code);
     List<OrderDto> findAll();
-    List<OrderDto> findByEstado(OrderStatus estado);
-    List<OrderDto> findByCliente(String idCliente);
-    OrderDto cambiarEstado(Long id, UpdateOrderState req);
+    List<OrderDto> findByStatus(OrderStatus status);
+    List<OrderDto> findByCustomer(String customerId);
+    OrderDto changeStatus(Long id, UpdateOrderState req);
 }

@@ -1,20 +1,16 @@
 package cl.smartlogix.shipping.dto;
 
 import cl.smartlogix.shipping.model.ShipmentState;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UpdateShipmentRStatusRequest(
-    @JsonProperty("status")
     @NotNull(message = "status es obligatorio")
-    ShipmentState estado,
+    ShipmentState status,
 
-    @JsonProperty("location")
     @Size(max = 255)
-    String ubicacion,
+    String location,
 
-    @JsonProperty("comment")
     @Size(max = 500)
-    String comentario
+    String comment
 ) {}

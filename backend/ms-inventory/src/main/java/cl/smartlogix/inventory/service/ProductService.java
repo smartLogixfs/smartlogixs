@@ -7,9 +7,9 @@ import cl.smartlogix.inventory.dto.ProductDto;
 import java.util.List;
 
 public interface ProductService {
-    ProductDto crear(CreateProductRequest req);
+    ProductDto create(CreateProductRequest req);
     ProductDto findById(Long id);
     ProductDto findBySku(String sku);
     List<ProductDto> findAll();
-    ProductDto actualizar(Long id, UpdateProductRequest req);
+    ProductDto update(Long id, UpdateProductRequest req);
 }
