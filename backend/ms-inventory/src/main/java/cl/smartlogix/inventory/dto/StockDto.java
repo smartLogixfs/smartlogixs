@@ -1,19 +1,20 @@
 package cl.smartlogix.inventory.dto;
 
 import cl.smartlogix.inventory.model.Stock;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.OffsetDateTime;
-import cl.smartlogix.inventory.model.Stock;
 
 public record StockDto(
-    Long idStock,
-    Long idProducto,
+    @JsonProperty("stockId") Long idStock,
+    @JsonProperty("productId") Long idProducto,
     String sku,
-    Long idBodega,
-    String bodega,
-    Integer cantidad,
-    Integer cantReservada,
-    Integer disponible,
-    Integer stockMinimo,
+    @JsonProperty("warehouseId") Long idBodega,
+    @JsonProperty("warehouseName") String bodega,
+    @JsonProperty("quantity") Integer cantidad,
+    @JsonProperty("reservedQuantity") Integer cantReservada,
+    @JsonProperty("available") Integer disponible,
+    @JsonProperty("minStock") Integer stockMinimo,
     OffsetDateTime updatedAt
 ) {
     public static StockDto from(Stock s) {

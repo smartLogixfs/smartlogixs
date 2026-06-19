@@ -1,6 +1,7 @@
 package cl.smartlogix.order.dto;
 
 import cl.smartlogix.order.model.OrderType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -13,12 +14,14 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record CreateOrderRequest(
-    OrderType tipo,
+    @JsonProperty("type") OrderType tipo,
 
-    @NotBlank(message = "idCliente es obligatorio")
+    @JsonProperty("customerId")
+    @NotBlank(message = "customerId es obligatorio")
     @Size(max = 64)
     String idCliente,
 
+    @JsonProperty("marketplaceId")
     @Size(max = 64)
     String idMarketplace,
 
@@ -27,18 +30,21 @@ public record CreateOrderRequest(
     List<ItemRequest> items
 ) {
     public record ItemRequest(
-        @NotNull(message = "idProducto es obligatorio")
+        @JsonProperty("productId")
+        @NotNull(message = "productId es obligatorio")
         Long idProducto,
 
         @NotBlank(message = "sku es obligatorio")
         @Size(max = 64)
         String sku,
 
-        @NotNull @Min(value = 1, message = "cantidad debe ser >= 1")
+        @JsonProperty("quantity")
+        @NotNull @Min(value = 1, message = "quantity debe ser >= 1")
         Integer cantidad,
 
+        @JsonProperty("unitPrice")
         @NotNull
-        @DecimalMin(value = "0.0", inclusive = false, message = "precioUnitario debe ser > 0")
+        @DecimalMin(value = "0.0", inclusive = false, message = "unitPrice debe ser > 0")
         BigDecimal precioUnitario
     ) {}
 }

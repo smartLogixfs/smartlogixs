@@ -2,24 +2,25 @@ package cl.smartlogix.shipping.dto;
 
 import cl.smartlogix.shipping.model.Shipment;
 import cl.smartlogix.shipping.model.ShipmentState;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ShipmentDto(
-    Long idEnvio,
-    Long idPedido,
-    Long idTransportista,
-    String transportistaNombre,
+    @JsonProperty("shipmentId") Long idEnvio,
+    @JsonProperty("orderId") Long idPedido,
+    @JsonProperty("carrierId") Long idTransportista,
+    @JsonProperty("carrierName") String transportistaNombre,
     String trackingNumber,
-    ShipmentState estado,
-    String direccionDestino,
-    String comuna,
+    @JsonProperty("status") ShipmentState estado,
+    @JsonProperty("destinationAddress") String direccionDestino,
+    @JsonProperty("district") String comuna,
     String region,
-    LocalDate fechaEstimada,
-    OffsetDateTime fechaEntrega,
-    List<ShipmentTrackingDto> seguimiento,
+    @JsonProperty("estimatedDate") LocalDate fechaEstimada,
+    @JsonProperty("deliveryDate") OffsetDateTime fechaEntrega,
+    @JsonProperty("tracking") List<ShipmentTrackingDto> seguimiento,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {

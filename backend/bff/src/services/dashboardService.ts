@@ -2,35 +2,35 @@ import { order } from "../clients/order.js";
 import { inventory } from "../clients/inventory.js";
 import { shipping } from "../clients/shipping.js";
 
-const ESTADOS_PEDIDO = ["PENDIENTE", "APROBADO", "EN_PREPARACION", "ENVIADO", "ENTREGADO"];
+const ORDER_STATUSES = ["PENDIENTE", "APROBADO", "EN_PREPARACION", "ENVIADO", "ENTREGADO"];
 
 export async function dashboard() {
-  const [pedidosPorEstado, stockBajo, enviosEnRuta] = await Promise.all([
-    pedidosPorEstadoMap(),
+  const [ordersByStatus, lowStock, shipmentsInTransit] = await Promise.all([
+    ordersByStatusMap(),
     inventory.stockBajo().catch(() => []),
     shipping.listar("EN_RUTA").catch(() => []),
   ]);
 
   return {
-    pedidos: pedidosPorEstado,
-    stockBajo: {
-      total: stockBajo.length,
-      items: stockBajo.slice(0, 10),
+    orders: ordersByStatus,
+    lowStock: {
+      total: lowStock.length,
+      items: lowStock.slice(0, 10),
     },
-    enviosEnRuta: {
-      total: enviosEnRuta.length,
-      items: enviosEnRuta.slice(0, 10),
+    shipmentsInTransit: {
+      total: shipmentsInTransit.length,
+      items: shipmentsInTransit.slice(0, 10),
     },
     generatedAt: new Date().toISOString(),
   };
 }
 
-async function pedidosPorEstadoMap() {
+async function ordersByStatusMap() {
   const entries = await Promise.all(
-    ESTADOS_PEDIDO.map((estado) =>
-      order.listar(estado)
-        .then((arr) => [estado, arr.length])
-        .catch(() => [estado, null])
+    ORDER_STATUSES.map((status) =>
+      order.listar(status)
+        .then((arr) => [status, arr.length])
+        .catch(() => [status, null])
     )
   );
   return Object.fromEntries(entries as any);

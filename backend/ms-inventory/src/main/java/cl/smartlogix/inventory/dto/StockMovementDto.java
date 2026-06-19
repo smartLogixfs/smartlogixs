@@ -2,15 +2,16 @@ package cl.smartlogix.inventory.dto;
 
 import cl.smartlogix.inventory.model.StockMovement;
 import cl.smartlogix.inventory.model.MovementType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.OffsetDateTime;
 
 public record StockMovementDto(
-    Long idMovimiento,
-    Long idStock,
-    MovementType tipo,
-    Integer cantidad,
-    String referenciaPedido,
+    @JsonProperty("movementId") Long idMovimiento,
+    @JsonProperty("stockId") Long idStock,
+    @JsonProperty("type") MovementType tipo,
+    @JsonProperty("quantity") Integer cantidad,
+    @JsonProperty("orderReference") String referenciaPedido,
     OffsetDateTime createdAt
 ) {
     public static StockMovementDto from(StockMovement m) {

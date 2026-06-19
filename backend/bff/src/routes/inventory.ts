@@ -44,18 +44,18 @@ router.get("/inventory/products-with-stock", async (_req: Request, res: Response
     const products = await inventory.productos();
     const result = await Promise.all(
       products.map(async (p: any) => {
-        const stocks = await inventory.stockByProducto(p.idProducto).catch(() => []);
-        const totalQty = stocks.reduce((sum: number, s: any) => sum + (s.cantidad || 0), 0);
-        const minStock = stocks.length > 0 ? Math.min(...stocks.map((s: any) => s.stockMinimo || 0)) : 15;
-        const locations = stocks.map((s: any) => `${s.bodega} (Cant: ${s.cantidad})`).join(", ") || "Sin Ubicación";
-        
+        const stocks = await inventory.stockByProducto(p.productId).catch(() => []);
+        const totalQty = stocks.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
+        const minStock = stocks.length > 0 ? Math.min(...stocks.map((s: any) => s.minStock || 0)) : 15;
+        const locations = stocks.map((s: any) => `${s.warehouseName} (Qty: ${s.quantity})`).join(", ") || "Sin Ubicación";
+
         let status = "Disponible";
         if (totalQty <= 0) status = "Agotado";
         else if (totalQty <= minStock) status = "Bajo Stock";
 
         return {
-          id: String(p.idProducto),
-          name: p.nombre,
+          id: String(p.productId),
+          name: p.name,
           sku: p.sku,
           category: getCategoryFromSku(p.sku),
           quantity: totalQty,
@@ -76,34 +76,34 @@ router.get("/inventory/products-with-stock", async (_req: Request, res: Response
 router.post("/inventory/products", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, sku, category, quantity, minStock, location } = req.body;
-    
+
     // Create product in ms-inventory
     const productPayload = {
       sku: sku || `GEN-${Math.floor(1000 + Math.random()*9000)}-SL`,
-      nombre: name,
-      descripcion: `Producto de categoría ${category || "General"} ubicado en ${location || "Muelle Central A"}.`,
-      precio: 100.0
+      name,
+      description: `Producto de categoría ${category || "General"} ubicado en ${location || "Muelle Central A"}.`,
+      price: 100.0
     };
 
     const createdProduct = await requestRaw("POST", "/products", productPayload);
-    const idProducto = createdProduct.idProducto;
+    const productId = createdProduct.productId;
 
     // Set up initial stock if quantity is provided
-    if (idProducto && quantity !== undefined) {
+    if (productId && quantity !== undefined) {
       const warehouseId = getWarehouseId(location || "");
       await requestRaw("POST", "/stock/in", {
-        idProducto,
-        idBodega: warehouseId,
-        cantidad: Number(quantity) || 0,
-        referenciaPedido: "Ingreso Manual"
+        productId,
+        warehouseId,
+        quantity: Number(quantity) || 0,
+        orderReference: "Ingreso Manual"
       }).catch(err => {
         console.error("Error setting initial stock for product:", err);
       });
     }
 
     res.status(201).json({
-      id: String(idProducto),
-      name: createdProduct.nombre,
+      id: String(productId),
+      name: createdProduct.name,
       sku: createdProduct.sku,
       category: category || "General",
       quantity: Number(quantity) || 0,
