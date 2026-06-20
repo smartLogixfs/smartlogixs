@@ -8,7 +8,7 @@
 
 | Componente | README |
 |---|---|
-| Frontend (React 19 + TS) | [`frontend/README.md`](frontend/README.md) |
+| Frontend (React 19 + TS + Tailwind) | [`frontend/README.md`](frontend/README.md) *(no incluido en repo, ver Vite + Tailwind)* |
 | BFF (Node.js 20 + Express) | [`backend/bff/README.md`](backend/bff/README.md) |
 | API Gateway (KrakenD) | [`backend/api-gateway/README.md`](backend/api-gateway/README.md) |
 | ms-order | [`backend/ms-order/README.md`](backend/ms-order/README.md) |
@@ -16,7 +16,7 @@
 | ms-shipping | [`backend/ms-shipping/README.md`](backend/ms-shipping/README.md) |
 | ms-user | [`backend/ms-user/README.md`](backend/ms-user/README.md) |
 | ms-auth | [`backend/ms-auth/README.md`](backend/ms-auth/README.md) |
-
+| Infra k8s | [`infra/k8s/README.md`](infra/k8s/README.md) |
 
 ---
 
@@ -31,8 +31,8 @@
 7. [Stack tecnológico](#7-stack-tecnológico)
 8. [Levantar el stack](#8-levantar-el-stack)
 9. [Estructura del proyecto](#9-estructura-del-proyecto)
-10. [Estrategia de branching](#10-estrategia-de-branching)
-11. [Sobre el arquetipo: Gradle vs Maven](#11-sobre-el-arquetipo-gradle-vs-maven)
+10. [Convenciones de naming](#10-convenciones-de-naming)
+11. [Estrategia de branching](#11-estrategia-de-branching)
 12. [Documentación complementaria](#12-documentación-complementaria)
 13. [Próximos pasos](#13-próximos-pasos)
 
@@ -40,9 +40,11 @@
 
 ## 1. Resumen ejecutivo
 
-SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **pedidos**, **inventario** y **envíos** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Bootstrap) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress), agregando rate limiting, JWT validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
+SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **orders**, **inventory** y **shipments** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Tailwind) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress local) / **ingress-nginx** (k8s), agregando rate limiting, JWT RS256 validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
 
 El proyecto demuestra **5 patrones arquitectónicos** (Microservicios, DB per Service, API Gateway, Ingress separado, BFF) y **más de 10 patrones de diseño** (Repository, Service Layer, DTO, State Machine, Optimistic Locking, Saga simplificada, Composite Service, Aggregate Root, Circuit-Breaker-lite, RFC 7807 Problem Detail).
+
+**Estado de la API pública**: contrato 100% en inglés (paths URL, campos JSON, scopes JWT). Los nombres internos de tablas y columnas DB se mantienen en español, mapeados con `@Column(name="...")` en cada entity para preservar el schema sin migraciones de renombre. Detalle en [§10](#10-convenciones-de-naming).
 
 ---
 
@@ -57,30 +59,34 @@ flowchart LR
     subgraph Web["Red pública: web"]
         Traefik["Traefik v3.5<br/>Ingress Controller<br/>:80 / :443"]
         Frontend["Frontend<br/>React 19 + Vite + Nginx<br/>app.smartlogix.localhost"]
-        Krakend["KrakenD v2.10<br/>API Gateway<br/>api.smartlogix.localhost"]
+        Krakend["KrakenD v2.9<br/>API Gateway<br/>api.smartlogix.localhost"]
         BFF["BFF<br/>Node.js 20 + Express<br/>bff.smartlogix.localhost"]
     end
 
     subgraph Internal["Red privada: internal"]
-        MSPed["ms-order<br/>Spring Boot 4"]
+        MSOrd["ms-order<br/>Spring Boot 4"]
         MSInv["ms-inventory<br/>Spring Boot 4"]
-        MSEnv["ms-shipping<br/>Spring Boot 4"]
-        DBPed[("db-order<br/>PostgreSQL 16")]
-        DBInv[("db-inventory<br/>PostgreSQL 16")]
-        DBEnv[("db-shipping<br/>PostgreSQL 16")]
+        MSShip["ms-shipping<br/>Spring Boot 4"]
+        MSUsr["ms-user<br/>Spring Boot 4"]
+        MSAuth["ms-auth<br/>Spring Boot 3.5"]
+        DBOrd[("db-order")]
+        DBInv[("db-inventory")]
+        DBShip[("db-shipping")]
+        DBUsr[("db-user")]
+        DBAuth[("db-auth")]
     end
 
     User -->|HTTP/HTTPS| Traefik
     Traefik --> Frontend
     Traefik --> Krakend
-    Traefik --> BFF
     Krakend -->|/api/*| BFF
-    BFF -->|REST/JSON| MSPed
-    BFF -->|REST/JSON| MSInv
-    BFF -->|REST/JSON| MSEnv
-    MSPed -->|JDBC| DBPed
-    MSInv -->|JDBC| DBInv
-    MSEnv -->|JDBC| DBEnv
+    BFF -->|REST/JSON| MSOrd & MSInv & MSShip & MSUsr & MSAuth
+    Krakend -.->|JWKS<br/>RS256| MSAuth
+    MSOrd --> DBOrd
+    MSInv --> DBInv
+    MSShip --> DBShip
+    MSUsr --> DBUsr
+    MSAuth --> DBAuth
 
     classDef edge fill:#e1f5ff,stroke:#0288d1
     classDef bff fill:#fff3e0,stroke:#f57c00
@@ -88,8 +94,8 @@ flowchart LR
     classDef db fill:#f3e5f5,stroke:#7b1fa2
     class Traefik,Frontend,Krakend edge
     class BFF bff
-    class MSPed,MSInv,MSEnv ms
-    class DBPed,DBInv,DBEnv db
+    class MSOrd,MSInv,MSShip,MSUsr,MSAuth ms
+    class DBOrd,DBInv,DBShip,DBUsr,DBAuth db
 ```
 
 ### 2.2 Topología de red Docker
@@ -106,26 +112,32 @@ flowchart TB
     subgraph IntNet["red: internal (internal=true, sin acceso a Internet)"]
         BB[BFF<br/><i>dual-homed</i>]
         KK[KrakenD<br/><i>dual-homed</i>]
-        P[ms-order]
+        O[ms-order]
         I[ms-inventory]
-        E[ms-shipping]
-        DP[(db-order)]
+        S[ms-shipping]
+        U[ms-user]
+        A[ms-auth]
+        DO[(db-order)]
         DI[(db-inventory)]
-        DE[(db-shipping)]
+        DS[(db-shipping)]
+        DU[(db-user)]
+        DA[(db-auth)]
     end
 
     B -.->|conecta<br/>vía interna| BB
     K -.->|conecta<br/>vía interna| KK
-    BB --> P & I & E
+    BB --> O & I & S & U & A
     KK --> BB
-    P --> DP
+    O --> DO
     I --> DI
-    E --> DE
+    S --> DS
+    U --> DU
+    A --> DA
 ```
 
 `web` es la red pública: ingress, frontend y los gateways. `internal` está marcada `internal: true` — Docker bloquea acceso saliente a Internet desde esa red. Las DBs **nunca** tienen puertos expuestos al host.
 
-### 2.3 Flujo de una petición
+### 2.3 Flujo de una petición autenticada
 
 ```mermaid
 sequenceDiagram
@@ -137,17 +149,15 @@ sequenceDiagram
     participant M as ms-order
     participant D as db-order
 
-    U->>T: GET app.smartlogix.localhost/dashboard
-    T->>T: Match Host header → router
-    T-->>U: HTML/JS (frontend)
-
-    U->>T: GET api.smartlogix.localhost/api/pedidos
-    T->>K: forward (con middlewares: CORS, rate-limit, secure-headers)
-    K->>B: GET /pedidos
-    B->>M: GET /pedidos (HTTP/JSON, timeout 5 s)
+    U->>T: GET app.smartlogix.localhost/api/orders<br/>Authorization: Bearer <jwt>
+    T->>K: forward (con middlewares: CORS, rate-limit)
+    K->>K: Validar JWT contra JWKS de ms-auth (RS256)
+    K->>K: Validar scope "read:orders" en claim
+    K->>B: GET /orders (header Authorization conservado)
+    B->>M: GET /orders (HTTP/JSON, timeout 5 s)
     M->>D: SELECT pedidos
     D-->>M: rows
-    M-->>B: 200 OK JSON
+    M-->>B: 200 OK JSON {orderId, code, status, items, ...}
     B-->>K: 200 OK JSON
     K-->>T: 200 OK JSON
     T-->>U: 200 OK JSON
@@ -159,27 +169,45 @@ sequenceDiagram
 
 | Capa | Componente | Responsabilidad | Stack |
 |---|---|---|---|
-| Edge | **Traefik** | Ingress: routing por host, TLS termination (preparado), middlewares de seguridad | Traefik v3.5 |
-| Gateway | **KrakenD** | API Gateway: routing `/api/*`, rate limiting, JWT validation, CORS | KrakenD v2.10 |
-| Presentación | **Frontend** | SPA del operador logístico (5 pantallas) | React 19, Vite 5, Bootstrap 5, TypeScript 6 |
-| Adaptación | **BFF** | Orquestación de MS para el frontend (saga checkout, dashboard agregado, proxy CRUD) | Node.js 20, Express 4, zod 3 |
-| Negocio | **ms-order** | Pedidos + máquina de estados + auditoría | Spring Boot 4, Java 25, JPA, Flyway |
-| Negocio | **ms-inventory** | Productos, bodegas, stock (con optimistic locking) | Spring Boot 4, Java 25, JPA, Flyway |
-| Negocio | **ms-shipping** | Envíos, transportistas, seguimiento | Spring Boot 4, Java 25, JPA, Flyway |
-| Negocio | **ms-user** | Usuarios y perfiles (servicio reutilizado) | Spring Boot, Java, JPA |
-| Negocio | **ms-auth** | Login, register, JWT issuer + JWKS (servicio reutilizado) | Spring Boot, Java, JPA |
+| Edge | **Traefik** (compose) / **ingress-nginx** (k8s) | Ingress: routing por host, TLS termination, middlewares de seguridad | Traefik v3.5 / nginx-ingress |
+| Gateway | **KrakenD** | API Gateway: routing `/api/*`, rate limiting, JWT validation, CORS | KrakenD v2.9 |
+| Presentación | **Frontend** | SPA del operador logístico (5 pantallas) | React 19, Vite 6, TypeScript 5.8, Tailwind CSS 4, motion/react, lucide-react |
+| Adaptación | **BFF** | Orquestación de MS para el frontend (saga checkout, dashboard agregado, proxy CRUD) | Node.js 20, Express 4, http-proxy-middleware, zod |
+| Negocio | **ms-order** | Pedidos + máquina de estados + auditoría | Spring Boot 4.0.6, Java 25, JPA, Flyway |
+| Negocio | **ms-inventory** | Productos, bodegas, stock (con optimistic locking) | Spring Boot 4.0.6, Java 25, JPA, Flyway |
+| Negocio | **ms-shipping** | Envíos, transportistas, seguimiento | Spring Boot 4.0.6, Java 25, JPA, Flyway |
+| Negocio | **ms-user** | Usuarios y perfiles del directorio interno | Spring Boot 4.0.6, Java 25, JPA, Flyway |
+| Auth | **ms-auth** | Login, register, emisor JWT RS256 + JWKS endpoint | Spring Boot 3.5.0, Java 25, Spring Security |
 | Datos | **PostgreSQL × 5** | DB per service, aisladas en red privada | PostgreSQL 16-alpine |
 
-### 3.1 Endpoints clave
+### 3.1 Endpoints REST principales (vía gateway)
 
-| MS | Path base | Operaciones | Detalle |
-|---|---|---|---|
-| `ms-order` | `/pedidos` | `POST`, `GET /{id}`, `GET /codigo/{c}`, `GET /cliente/{id}`, `GET ?estado=`, `PATCH /{id}/estado` | [README](backend/ms-order/) |
-| `ms-inventory` | `/productos`, `/bodegas`, `/stock` | CRUD productos/bodegas + `POST /stock/{entrada,salida,reservar,liberar}` | [README](backend/ms-inventory/) |
-| `ms-shipping` | `/envios`, `/transportistas` | CRUD + `PATCH /{id}/{transportista,estado}` | [README](backend/ms-shipping/) |
-| `ms-user` | `/usuarios` | CRUD usuarios (servicio reutilizado) | [README](backend/ms-user/) |
-| `ms-auth` | `/auth` | Login, register, JWT/JWKS (servicio reutilizado) | [README](backend/ms-auth/) |
-| `BFF` | (multiple) | `GET /dashboard`, `GET /pedidos/:id/full`, `POST /checkout`, proxy CRUD | [README](backend/bff/) |
+Todos los endpoints debajo de `/api/*` requieren `Authorization: Bearer <jwt>` excepto los marcados como **(público)**.
+
+| Recurso | Operaciones | Scope JWT requerido |
+|---|---|---|
+| `/api/auth/register` | `POST` **(público)** | — |
+| `/api/auth/login` | `POST` **(público)** | — |
+| `/api/inventory/products` | `GET`, `POST`, `PATCH /{id}` | `read:inventory` / `write:inventory` |
+| `/api/inventory/products-with-stock` | `GET` *(compuesto en BFF)* | `read:inventory` |
+| `/api/inventory/warehouses` | `GET`, `POST` | `read:inventory` / `write:inventory` |
+| `/api/inventory/stock/in,out,reserve,release` | `POST` | `write:inventory` |
+| `/api/orders` | `GET`, `POST`, `PATCH /{id}/status` | `read:orders` / `write:orders` |
+| `/api/shipments` | `GET`, `POST`, `PATCH /{id}/status`, `PATCH /{id}/carrier` | `read:shipments` / `write:shipments` |
+| `/api/users` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` | `read:users` / `write:users` |
+| `/api/checkout` | `POST` *(saga en BFF)* | `write:orders` |
+| `/api/dashboard` | `GET` *(compuesto en BFF)* | `read:orders` |
+
+Referencia detallada con payloads de ejemplo en cada [README de MS](#readmes-por-componente).
+
+### 3.2 Roles y scopes
+
+| Rol | Scopes |
+|---|---|
+| `USER` | `read:inventory read:orders read:shipments` |
+| `ADMIN` | Todos los scopes (`read:*` + `write:*` para inventory/orders/shipments/users) |
+
+El JWT se firma con **RS256** usando la llave privada de `ms-auth`. El gateway valida contra el JWKS público (`http://ms-auth:8081/.well-known/jwks.json`).
 
 ---
 
@@ -194,111 +222,123 @@ sequenceDiagram
     autonumber
     participant C as Cliente (Frontend)
     participant B as BFF
-    participant P as ms-order
+    participant O as ms-order
     participant I as ms-inventory
-    participant E as ms-shipping
+    participant S as ms-shipping
 
-    C->>B: POST /checkout { idCliente, items, idBodega, envio }
+    C->>B: POST /api/checkout { customerId, items, warehouseId, shipment }
     B->>B: validar con zod
-    B->>P: POST /pedidos
-    P-->>B: 201 + idPedido
+    B->>O: POST /orders
+    O-->>B: 201 + orderId, code
 
     loop por cada item
-        B->>I: POST /stock/reservar
+        B->>I: POST /stock/reserve
         I-->>B: 200 / 409 (stock insuficiente)
     end
 
     alt todas las reservas OK
-        B->>E: POST /envios
-        E-->>B: 201 + tracking
-        B-->>C: 200 + { pedido, envio, reservas }
+        B->>S: POST /shipments
+        S-->>B: 201 + shipmentId, trackingNumber
+        B-->>C: 200 + { order, shipment }
     else alguna reserva falló
         Note over B: rollback best-effort
-        B->>I: POST /stock/liberar (por cada reserva ya hecha)
+        B->>I: POST /stock/release (por cada reserva ya hecha)
         B-->>C: 4xx + ProblemDetail
     end
 ```
 
-### 4.2 Frontend ↔ BFF (con proxy de Vite)
+### 4.2 Login y JWT
 
 ```mermaid
-flowchart LR
-    Vite["Vite dev :5173"]
-    Page["DashboardPage.tsx"]
-    Hook["useFetch&lt;T&gt;"]
-    Client["apiClient.ts"]
-    Proxy["Vite proxy<br/>/api/* → bff:80"]
-    BFF["BFF :3000<br/>(via Traefik)"]
+sequenceDiagram
+    autonumber
+    participant U as Usuario
+    participant K as KrakenD
+    participant B as BFF
+    participant A as ms-auth
+    participant DB as db-auth
 
-    Page --> Hook
-    Hook --> Client
-    Client -->|GET /api/dashboard| Vite
-    Vite --> Proxy
-    Proxy -->|Host: bff.smartlogix.localhost| BFF
-    BFF -->|JSON DashboardResponse| Proxy
-    Proxy -->|JSON| Client
-    Client -->|tipado T| Hook
-    Hook -->|FetchState<T>| Page
+    U->>K: POST /api/auth/login { email, password }
+    K->>B: POST /auth/login
+    B->>A: POST /auth/login
+    A->>DB: SELECT * FROM users WHERE email
+    DB-->>A: user row
+    A->>A: bcrypt match password_hash
+    A->>A: build JWT (RS256, claims: sub, role, scope, iss, exp)
+    A-->>B: 200 { accessToken, tokenType: "Bearer", expiresIn: 1800 }
+    B-->>K: 200
+    K-->>U: 200 + token
+
+    Note over U,K: Para requests subsecuentes:<br/>Authorization: Bearer <jwt>
+    U->>K: GET /api/inventory/products + Authorization
+    K->>A: GET /.well-known/jwks.json (cached)
+    A-->>K: JWK Set
+    K->>K: verify signature + check scope
+    K->>B: GET /inventory/products
+    B->>...
 ```
-
-En dev se evita CORS reescribiendo `/api/*` a través del proxy de Vite. En prod, Nginx (que sirve el build) replica el mismo prefijo `/api/*` hacia el BFF dentro de la red Docker.
 
 ---
 
 ## 5. Modelo de datos
 
-Tres agregados independientes, sin FKs cruzadas — los IDs que cruzan dominios son **identificadores lógicos** (strings o longs) que cada servicio valida vía API REST.
+Cinco agregados independientes (uno por MS), sin FKs cruzadas — los IDs que cruzan dominios son **identificadores lógicos** que cada servicio valida vía API REST.
+
+> **Nota sobre naming**: Java entities y campos están en inglés (`User`, `name`, `productId`). Tablas y columnas DB siguen en español (`usuarios`, `nombre`, `id_producto`). El mapping se preserva con `@Column(name="...")` en cada entity. Ver [§10](#10-convenciones-de-naming).
 
 ```mermaid
 erDiagram
-    PEDIDO ||--o{ PEDIDO_ITEM : tiene
-    PEDIDO ||--o{ PEDIDO_HISTORIAL : audita
-    PEDIDO {
-        long idPedido PK
-        string codigo "PED-YYYYMMDD-XXXXXX"
-        enum estado
-        string idCliente "ID lógico"
+    ORDER ||--o{ ORDER_ITEM : contains
+    ORDER ||--o{ ORDER_HISTORY : audits
+    ORDER {
+        long id PK "tabla: pedidos.id_pedido"
+        string code "PED-YYYYMMDD-XXXXXX"
+        enum status "máquina de estados"
+        string customerId "ID lógico (externo)"
         decimal subtotal
-        decimal impuesto
+        decimal tax
         decimal total
     }
-    PEDIDO_ITEM {
-        long idItem PK
-        long idProducto "ID lógico → inventario"
-        int cantidad
-        decimal precioUnitario
+    ORDER_ITEM {
+        long id PK
+        long productId "ID lógico → ms-inventory"
+        int quantity
+        decimal unitPrice
     }
 
-    PRODUCTO ||--o{ STOCK : "existe en"
-    BODEGA ||--o{ STOCK : "almacena"
-    STOCK ||--o{ MOVIMIENTO_STOCK : registra
-    PRODUCTO {
-        long idProducto PK
+    PRODUCT ||--o{ STOCK : "has"
+    WAREHOUSE ||--o{ STOCK : "stores"
+    STOCK ||--o{ STOCK_MOVEMENT : "records"
+    PRODUCT {
+        long id PK "tabla: productos.id_producto"
         string sku UK
-        decimal precio
+        decimal price
+        boolean active
     }
     STOCK {
-        long idStock PK
-        int cantidad
-        int cantReservada
-        int stockMinimo
+        long id PK
+        int quantity
+        int reservedQuantity
+        int minStock
         long version "Optimistic lock"
     }
 
-    ENVIO ||--o{ ENVIO_SEGUIMIENTO : registra
-    TRANSPORTISTA ||--o{ ENVIO : "asigna"
-    ENVIO {
-        long idEnvio PK
-        long idPedido "ID lógico → pedido"
-        string trackingNumber UK "ENV-YYYYMMDD-XXXXXXXX"
-        enum estado
-        string direccionDestino
+    SHIPMENT ||--o{ SHIPMENT_TRACKING : "tracks"
+    CARRIER ||--o{ SHIPMENT : "assigned to"
+    SHIPMENT {
+        long id PK "tabla: envios.id_envio"
+        long orderId "ID lógico → ms-order"
+        string trackingNumber UK
+        enum status
+        string destinationAddress
     }
 ```
 
 Detalle completo en [`docs/modelo-datos.md`](docs/modelo-datos.md).
 
 ### 5.1 Máquinas de estado
+
+Los valores de los enums se mantienen en español porque son constraints CHECK en SQL (`PENDIENTE`, `APROBADO`, `ENVIADO`, etc.). Cambiarlos requeriría migración y rollback complejo.
 
 ```mermaid
 stateDiagram-v2
@@ -317,22 +357,22 @@ stateDiagram-v2
     CANCELADO --> [*]
 ```
 
-*Estados de `Pedido`*: las transiciones se validan en `OrderServiceImpl` contra un `Map<EstadoPedido, Set<EstadoPedido>>` declarado como datos. Cualquier transición ilegal devuelve **409 Conflict** vía `GlobalExceptionHandler`.
+*Estados de `Order`*: las transiciones se validan en `OrderServiceImpl` contra un `Map<OrderStatus, Set<OrderStatus>>`. Cualquier transición ilegal devuelve **409 Conflict** vía `GlobalExceptionHandler`.
 
 ```mermaid
 stateDiagram-v2
     direction LR
     [*] --> CREADO
-    CREADO --> ASIGNADO : asignar transportista
+    CREADO --> ASIGNADO : assignCarrier()
     ASIGNADO --> EN_RUTA
     EN_RUTA --> ENTREGADO
     EN_RUTA --> INCIDENCIA
-    INCIDENCIA --> EN_RUTA : reintentar
+    INCIDENCIA --> EN_RUTA : retry
     INCIDENCIA --> ENTREGADO
     ENTREGADO --> [*]
 ```
 
-*Estados de `Envio`*: `INCIDENCIA` es una rama lateral **reintentable**. Cada transición persiste una fila en `envio_seguimiento` (audit log inmutable).
+*Estados de `Shipment`*: `INCIDENCIA` es una rama lateral **reintentable**. Cada transición persiste una fila en `envio_seguimiento` (audit log inmutable).
 
 ---
 
@@ -342,24 +382,25 @@ stateDiagram-v2
 
 | Patrón | Dónde se ve | Problema que resuelve |
 |---|---|---|
-| **Microservicios** | 3 MS Spring Boot independientes | Despliegue y evolución por dominio, sin acoplamiento de releases |
+| **Microservicios** | 5 MS Spring Boot independientes | Despliegue y evolución por dominio, sin acoplamiento de releases |
 | **Database per Service** | `db-order`, `db-inventory`, `db-shipping`, `db-user`, `db-auth` aisladas | Cada equipo evoluciona su schema sin coordinar |
-| **API Gateway** | KrakenD v2.10 | Cross-cutting: rate limiting, JWT, CORS, sin contaminar los MS |
-| **Ingress separado** | Traefik v3.5 + KrakenD | TLS/routing por host (edge) separado de policy de API |
+| **API Gateway** | KrakenD v2.9 | Cross-cutting: rate limiting, JWT validation, CORS, sin contaminar los MS |
+| **Ingress separado** | Traefik v3.5 (compose) / nginx-ingress (k8s) | TLS/routing por host (edge) separado de policy de API |
 | **Backend For Frontend** | Node.js + Express | Endpoint óptimo por pantalla, agregación, orquestación |
 
-### 6.2 De diseño (selección — más detalle en cada README de componente)
+### 6.2 De diseño (selección)
 
 - **Repository Pattern** (Spring Data JPA repositories)
 - **Service Layer** (interfaz + impl, transaccional)
 - **DTO** (records Java, inmutables, validables)
-- **State Machine** (Pedido + Envio)
+- **State Machine** (`Order` + `Shipment` con transiciones explícitas)
 - **Optimistic Locking** (`@Version` en `Stock`)
-- **Saga simplificada / Composite Service** (checkout con compensaciones)
-- **Aggregate Root** (`Pedido` → items + historial; `Envio` → seguimiento; `Stock` → movimientos)
+- **Saga simplificada / Composite Service** (checkout en BFF con compensaciones)
+- **Aggregate Root** (`Order` → items + history; `Shipment` → tracking; `Stock` → movements)
 - **Circuit-Breaker-lite** (BFF: `AbortController` + tolerancia parcial en agregaciones)
-- **RFC 7807 ProblemDetail** (formato unificado de errores en MS y BFF)
+- **RFC 7807 ProblemDetail** (formato unificado de errores en `GlobalExceptionHandler` de los 5 MS)
 - **Schema-first migrations** (Flyway autoritativo, Hibernate en `ddl-auto=validate`)
+- **JWT RS256 con JWKS** (ms-auth firma, gateway verifica via endpoint público)
 
 Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf).
 
@@ -369,24 +410,27 @@ Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-pa
 
 | Capa | Tecnologías |
 |---|---|
-| Frontend | React 19, Vite 5, TypeScript 6, react-router-dom 7, react-bootstrap 5 |
-| BFF | Node.js 20, Express 4, http-proxy-middleware 3, zod 3, morgan |
-| Gateway | KrakenD v2.10 (declarativo via `krakend.json`) |
-| Ingress | Traefik v3.5 (provider File) |
-| Backend MS | Spring Boot 4.0.6, Java 25, Spring Web MVC, Spring Data JPA, Hibernate, Flyway, Bean Validation, Lombok |
+| Frontend | React 19, Vite 6, TypeScript 5.8, Tailwind CSS 4, motion/react 12, lucide-react |
+| BFF | Node.js 20, Express 4, http-proxy-middleware, zod, morgan, swagger-ui-express |
+| Gateway | KrakenD v2.9 (declarativo via `krakend.json`) |
+| Ingress | Traefik v3.5 (Docker Compose) / nginx-ingress (Kubernetes) |
+| MS Spring (4 servicios) | Spring Boot 4.0.6, Java 25, Spring Web MVC, Spring Data JPA, Hibernate, Flyway, Bean Validation, Lombok, Springdoc OpenAPI |
+| ms-auth | Spring Boot 3.5.0, Spring Security, OAuth2 Resource Server, Nimbus JOSE+JWT |
 | DB | PostgreSQL 16-alpine |
-| Build | Gradle 9 (Groovy DSL) — ver [§11](#11-sobre-el-arquetipo-gradle-vs-maven) |
-| Tests | JUnit 5, Mockito, Spring `@WebMvcTest` (en rama `feature/tests-unitarios`) |
-| Contenedores | Docker + Docker Compose v2 |
+| Build | Gradle 9 (Groovy DSL) |
+| Tests | JUnit 5, Mockito, Spring `@WebMvcTest`, JaCoCo |
+| Contenedores | Docker + Docker Compose v2, Kubernetes (validado en Docker Desktop k8s) |
+| Docs | Mermaid embebido en Markdown, Springdoc OpenAPI / Swagger UI por MS |
 
 ---
 
 ## 8. Levantar el stack
 
-### 8.1 Pre-requisitos
+### 8.1 Docker Compose (desarrollo local)
 
-- **Docker Desktop** (Windows/Mac) o Docker Engine + Compose v2 (Linux)
-- En Windows, agregar al `hosts` (`C:\Windows\System32\drivers\etc\hosts`, como administrador):
+**Pre-requisitos**: Docker Desktop o Docker Engine + Compose v2.
+
+En Windows, agregar al `hosts` (`C:\Windows\System32\drivers\etc\hosts`, como administrador):
 
 ```
 127.0.0.1 app.smartlogix.localhost
@@ -395,44 +439,68 @@ Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-pa
 127.0.0.1 traefik.smartlogix.localhost
 ```
 
-> En Linux/Mac, `*.localhost` resuelve automáticamente; los browsers modernos también.
-
-### 8.2 Build + up
+> En Linux/Mac y en Chrome/Edge modernos, `*.localhost` resuelve automáticamente a 127.0.0.1.
 
 ```bash
 cp .env.example .env       # editar passwords si lo necesitas
 docker compose up --build -d
-docker compose ps          # esperar 10 contenedores Up
+docker compose ps          # esperar 13 contenedores Up
 ```
-
-### 8.3 Smoke tests
 
 | URL | Qué deberías ver |
 |---|---|
-| http://app.smartlogix.localhost | Frontend React |
-| http://api.smartlogix.localhost/api/pedidos | Listado vía KrakenD → BFF |
+| http://app.smartlogix.localhost | Frontend React (login + dashboard) |
+| http://api.smartlogix.localhost/api/orders | Listado vía KrakenD → BFF → ms-order |
 | http://bff.smartlogix.localhost/health | `{"status":"ok","service":"bff"}` |
-| http://bff.smartlogix.localhost/dashboard | Agregados de estado del sistema |
 | http://traefik.smartlogix.localhost | Dashboard Traefik |
 
-### 8.3.1 Documentación interactiva (Swagger / OpenAPI)
+### 8.2 Kubernetes
 
-Cada microservicio Spring Boot expone su propio Swagger UI. El BFF agrega su
-propia documentación con `swagger-ui-express`.
+Ver detalle completo en [`infra/k8s/README.md`](infra/k8s/README.md). Resumen:
 
-| Componente | Swagger UI | OpenAPI spec |
+```bash
+# 1) Build de imágenes con tag esperado por los manifests
+docker build -t smartlogix/ms-inventory:latest backend/ms-inventory
+# ... (8 imágenes en total — ver readme infra)
+
+# 2) Namespace + ConfigMap
+kubectl apply -k infra/k8s/base
+
+# 3) Secrets (no committeados): credenciales DB + llaves PEM RSA
+kubectl -n smartlogix create secret generic smartlogix-secret --from-env-file=.env --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n smartlogix create secret generic smartlogix-keys --from-file=private_key.pem --from-file=public_key.pem --dry-run=client -o yaml | kubectl apply -f -
+
+# 4) Apply (workaround por configMapGenerator con path fuera de su dir)
+kubectl kustomize --load-restrictor=LoadRestrictionsNone infra/k8s | kubectl apply -f -
+
+# 5) Hosts y verificación
+kubectl -n smartlogix get pods   # 13 pods Running
+```
+
+### 8.3 Documentación interactiva (Swagger / OpenAPI)
+
+Cada microservicio Spring Boot expone su propio Swagger UI. El BFF agrega su propia documentación con `swagger-ui-express`.
+
+| Componente | Swagger UI (puerto interno) | OpenAPI spec |
 |---|---|---|
-| **BFF** | http://bff.smartlogix.localhost/docs | `/openapi.json` |
-| **ms-auth** | http://localhost:8081/swagger-ui.html | `/v3/api-docs` |
-| **ms-user** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
-| **ms-order** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
-| **ms-inventory** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
-| **ms-shipping** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
+| **BFF** | `:3000/docs` | `:3000/openapi.json` |
+| **ms-auth** | `:8081/swagger-ui.html` | `:8081/v3/api-docs` |
+| **ms-user** | `:8080/swagger-ui.html` | `:8080/v3/api-docs` |
+| **ms-order** | `:8080/swagger-ui.html` | `:8080/v3/api-docs` |
+| **ms-inventory** | `:8080/swagger-ui.html` | `:8080/v3/api-docs` |
+| **ms-shipping** | `:8080/swagger-ui.html` | `:8080/v3/api-docs` |
 
-> En docker-compose los MS no exponen puerto al host (red `internal`). Para abrir
-> los Swagger directamente en navegador usa `docker compose exec` o agrega
-> `ports:` temporalmente al servicio que necesites inspeccionar. En k8s puedes
-> hacer `kubectl -n smartlogix port-forward svc/ms-order 8080:8080`.
+En docker-compose los MS no exponen puerto al host (red `internal`). Para abrir los Swagger UI en navegador:
+
+```bash
+# Docker Compose
+docker compose exec ms-order curl -s localhost:8080/v3/api-docs   # ver el JSON
+# o agregar temporalmente "ports: ['8080:8080']" en docker-compose.yml
+
+# Kubernetes
+kubectl -n smartlogix port-forward svc/ms-order 8080:8080
+# abrir http://localhost:8080/swagger-ui.html
+```
 
 ### 8.4 Comandos útiles
 
@@ -442,7 +510,6 @@ docker compose up -d --build bff         # rebuild aislado
 docker compose exec db-order psql -U pedido -d pedido   # conectarse a una DB
 docker compose down                      # bajar (mantiene volúmenes)
 docker compose down -v                   # bajar + borrar data
-docker compose config                    # validar sintaxis
 ```
 
 ---
@@ -453,74 +520,82 @@ docker compose config                    # validar sintaxis
 smartlogixs/
 ├── docker-compose.yml                # orquesta el stack completo
 ├── .env.example                      # variables (copiar a .env)
+├── private_key.pem / public_key.pem  # llaves RSA para JWT (no committear en prod)
 ├── infra/
-│   └── traefik/
-│       ├── traefik.yml               # config estática
-│       └── dynamic/                  # routers + middlewares
+│   ├── traefik/                      # config Traefik (compose)
+│   └── k8s/                          # manifests k8s (kustomize)
 ├── docs/
-│   ├── modelo-datos.md               # ER y máquinas de estado
+│   ├── modelo-datos.md
 │   ├── analisis-patrones-arquetipos.pdf
-│   ├── plan-branching.pdf
-│   └── repositorios.txt
-├── frontend/                         # SPA React 19 + TypeScript
+│   ├── login-jwt-sequence.md
+│   └── ...
+├── frontend/                         # SPA React 19 + TypeScript + Tailwind
 │   ├── src/
-│   │   ├── client/                   # apiClient.ts, useFetch.ts
-│   │   ├── types/api.ts              # DTOs TS (espejo de los records Java)
-│   │   ├── pages/                    # 5 páginas conectadas al BFF
-│   │   └── components/               # Layout, Sidebar
-│   └── vite.config.js                # proxy /api/* → BFF en dev
+│   │   ├── client/                   # apiClient.ts
+│   │   ├── pages/                    # Login, Dashboard, ShipmentTable, WarehouseGrid, AIHub
+│   │   ├── components/               # Sidebar, ...
+│   │   ├── types.ts                  # tipos compartidos
+│   │   └── main.tsx
+│   ├── nginx.conf                    # proxy /api → bff (k8s)
+│   └── vite.config.ts                # proxy /api → :8080 (dev)
 └── backend/
     ├── bff/                          # Node.js 20 + Express + zod
     │   └── src/{routes,services,clients,schemas,middleware}/
-    ├── api-gateway/                  # KrakenD declarativo
-    ├── ms-order/                     # Spring Boot 4 (pedidos)
-    ├── ms-inventory/                 # Spring Boot 4 (inventario)
-    ├── ms-shipping/                  # Spring Boot 4 (envíos)
-    ├── ms-user/                      # Spring Boot (usuarios — reutilizado)
-    └── ms-auth/                      # Spring Boot (auth/JWT — reutilizado)
+    ├── api-gateway/                  # KrakenD declarativo (krakend.json)
+    ├── ms-order/                     # Spring Boot 4 (paquete cl.smartlogix.order)
+    ├── ms-inventory/                 # Spring Boot 4 (paquete cl.smartlogix.inventory)
+    ├── ms-shipping/                  # Spring Boot 4 (paquete cl.smartlogix.shipping)
+    ├── ms-user/                      # Spring Boot 4 (paquete cl.smartlogix.user)
+    └── ms-auth/                      # Spring Boot 3.5 (paquete cl.smartlogix.auth)
+```
+
+Cada MS sigue la estructura estándar de Spring:
+
+```
+ms-<name>/
+├── src/main/java/cl/smartlogix/<name>/
+│   ├── <Name>Application.java        # @SpringBootApplication
+│   ├── config/                       # OpenApiConfig, SecurityConfig, etc.
+│   ├── controller/                   # @RestController + GlobalExceptionHandler
+│   ├── service/                      # interface + Impl, @Transactional
+│   ├── repository/                   # @Repository extends JpaRepository
+│   ├── dto/                          # records inmutables
+│   └── model/                        # @Entity JPA con @Column para columnas DB en español
+├── src/main/resources/
+│   ├── application.properties        # config Spring + Flyway
+│   └── db/migration/V*.sql           # migraciones SQL versionadas
+└── build.gradle                      # plugin spring-boot + dependencias
 ```
 
 ---
 
-## 10. Estrategia de branching
+## 10. Convenciones de naming
 
-Se usa **GitFlow simplificado** con tres tipos de rama: `main` (estable, entregable), `develop` (integración) y `feature/<kebab-case>` (trabajo en curso). Cada feature se cierra con un **Pull Request** contra `develop` o `main` y se mergea preservando la historia (merge commit, no squash).
+| Lugar | Idioma | Razón |
+|---|---|---|
+| Paths URL (`/api/orders`, `/api/inventory`) | **Inglés** | API pública |
+| Campos JSON (`productId`, `quantity`, `carrierName`) | **Inglés** | Contrato consumido por el frontend |
+| Scopes JWT (`read:inventory`, `write:orders`) | **Inglés** | Tokens estándar |
+| Variables Java, métodos, clases | **Inglés** | Requisito del proyecto |
+| Packages Java | `cl.smartlogix.<artifact>` | Convención del scaffolding |
+| Tablas y columnas DB | **Español** (`pedidos`, `id_producto`, `cantidad`) | Schema histórico; renombrarlo requiere migraciones con downtime |
+| Enums de estado (`PENDIENTE`, `EN_RUTA`) | **Español** | Persistidos como `CHECK` constraint en SQL |
+| Comentarios y mensajes de error | **Español** | Equipo y stakeholders locales |
+| READMEs y docs | **Español** | Lectura interna |
 
-```mermaid
-gitGraph
-    commit id: "initial"
-    branch develop
-    commit id: "estructura inicial"
-    branch feature/frontend-setup
-    commit id: "setup TS + Vite"
-    commit id: "dashboard visual"
-    checkout main
-    merge feature/frontend-setup tag: "PR #2"
-    branch feature/improvement-pedido
-    commit id: "DTOs + state machine"
-    checkout main
-    merge feature/improvement-pedido tag: "PR #4"
-    branch feature/frontend-backend-integration
-    commit id: "apiClient + types"
-    commit id: "5 pages conectadas"
-    checkout main
-    merge feature/frontend-backend-integration tag: "PR #5"
-```
+**Cómo se preserva el mapping inglés↔español:**
+- Entities Java usan `@Column(name="nombre")` cuando la columna DB está en español
+- JPA `@Table(name="pedidos")` para nombres de tabla
+- Los DTOs son records con campos en inglés, mapeados desde la entity vía factory `from(entity)`
+- Cuando un MS rebuildea, Hibernate valida (`ddl-auto=validate`) que el mapping cuadra con la DB existente
+
+---
+
+## 11. Estrategia de branching
+
+GitFlow simplificado con tres tipos de rama: `main` (estable, entregable), `develop` (integración) y `refacto/<kebab-case>` o `feature/<kebab-case>` (trabajo en curso). Cada feature se cierra con un **Pull Request** preservando la historia (merge commit, no squash).
 
 Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-branching.pdf`](docs/plan-branching.pdf).
-
----
-
-## 11. Sobre el arquetipo: Gradle vs Maven
-
-La rúbrica EV2 menciona "arquetipos Maven". En este monorepo los 3 microservicios y el BFF se construyeron con **Gradle 9** porque:
-
-1. **Spring Initializr (el arquetipo oficial de Spring Boot 4) emite por defecto proyectos Gradle**. Es la herramienta recomendada por VMware/Broadcom, equivalente conceptual al `mvn archetype:generate` pero con catálogo siempre actualizado.
-2. **Los `build.gradle` cumplen el rol de un arquetipo**: estructura idéntica entre los 3 MS, plantilla copy-paste para crear un nuevo servicio.
-3. **Performance**: `./gradlew bootJar` toma ~30 s por MS (incremental + build cache). El equivalente Maven sería 60–90 s.
-4. **DSL declarativo más legible** que el XML de Maven.
-
-Si la rúbrica exige Maven literal, basta con `mvn archetype:create-from-project` desde un MS de referencia para generar el arquetipo a partir del código actual (operación reversible de ~1–2 h). Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) §5.
 
 ---
 
@@ -530,16 +605,18 @@ Si la rúbrica exige Maven literal, basta con `mvn archetype:create-from-project
 |---|---|
 | [`docs/modelo-datos.md`](docs/modelo-datos.md) | ER detallado y máquinas de estado |
 | [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
+| [`docs/login-jwt-sequence.md`](docs/login-jwt-sequence.md) | Secuencia detallada del login y emisión JWT RS256 |
 | [`docs/plan-branching.pdf`](docs/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
-| [`docs/repositorios.txt`](docs/repositorios.txt) | Enlaces a GitHub por componente |
+| [`docs/report.pdf`](docs/) | Informe técnico (10 min lectura) |
+| [`docs/presentation.pdf`](docs/) | Presentación ejecutiva |
 
 ---
 
 ## 13. Próximos pasos
 
-1. **Activar JWT real**: configurar el JWT validator de KrakenD con secret/issuer real (Auth0 / Keycloak)
-2. **Activar HTTPS**: descomentar la sección `certificatesResolvers` en `traefik.yml`
-3. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite)
-4. **Healthchecks de MS**: agregar `spring-boot-starter-actuator` + `HEALTHCHECK` en los Dockerfiles (implementado en la rama `feature/tests-unitarios`, pendiente de merge)
-5. **Tests unitarios** por servicio con cobertura ≥70% (implementado en la rama `feature/tests-unitarios`, pendiente de merge)
-6. **Arquetipo Maven explícito** si la rúbrica lo exige literalmente
+1. **Packages `com.[empresa].[artefacto]`**: la rúbrica pide convención `com.smartlogix.<artifact>`; el monorepo usa `cl.smartlogix.<artifact>`. Renombre pendiente.
+2. **Cobertura de tests ≥60%**: actualmente los MS tienen tests con JaCoCo (mergeados desde `feature/tests-unitarios`); validar que la cobertura efectiva supera el umbral en todos los MS y agregar tests faltantes (especialmente en ms-auth y ms-user).
+3. **Activar HTTPS en producción**: descomentar la sección `certificatesResolvers` en `infra/traefik/traefik.yml` (Let's Encrypt) o agregar TLS al ingress k8s.
+4. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite con `AbortController`).
+5. **Bug del Krakend `{path}`**: el wildcard de gin captura solo 1 segmento, por lo que endpoints multi-segmento como `/api/inventory/stock/low` requieren entrada específica en `krakend.json`.
+6. **Spring Boot 4 + Flyway**: con `ddl-auto=validate` Flyway no corre automáticamente antes de Hibernate en Boot 4 (sí funciona en ms-auth que usa 3.5). Workaround: aplicar migrations vía `psql` manualmente, o downgrade a 3.5.

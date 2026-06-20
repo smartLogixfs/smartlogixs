@@ -1,8 +1,20 @@
 # API Gateway — KrakenD
 
-> Gateway declarativo que enruta `/api/*` hacia el BFF, agrega rate limiting, JWT validation (preparado) y CORS. Vive **detrás** de Traefik (Ingress).
+> Gateway declarativo que enruta `/api/*` hacia el BFF, valida JWT RS256 por endpoint con scopes, y aplica CORS. Vive **detrás** del Ingress (Traefik en compose / nginx-ingress en k8s).
 
-← Volver a [README raíz del monorepo](../../../README.md) · Otros componentes: [Frontend](../../../frontend/README.md) · [BFF](../../bff/README.md) · [ms-pedido](../ms-pedido/README.md) · [ms-inventario](../ms-inventario/README.md) · [ms-envio](../ms-envio/README.md)
+← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [BFF](../bff/README.md) · [ms-order](../ms-order/README.md) · [ms-inventory](../ms-inventory/README.md) · [ms-shipping](../ms-shipping/README.md) · [ms-user](../ms-user/README.md) · [ms-auth](../ms-auth/README.md)
+
+---
+
+## Tabla técnica
+
+| Aspecto | Detalle |
+|---|---|
+| Imagen | `devopsfaith/krakend:2.9.4` |
+| Configuración | `krakend.json` declarativo (sin código compilado) |
+| Auth | JWT RS256, verificado contra JWKS de `ms-auth` |
+| Tests | n/a (configuración validable con `krakend check`) |
+| Patrones | API Gateway, Declarative Configuration, JWT validation con JWKS, CORS, Ingress + Gateway separados |
 
 ---
 
@@ -12,38 +24,39 @@
 2. [Posición en la arquitectura](#2-posición-en-la-arquitectura)
 3. [Responsabilidad](#3-responsabilidad)
 4. [Configuración (`krakend.json`)](#4-configuración-krakendjson)
-5. [Cómo ejecutar](#5-cómo-ejecutar)
-6. [Cómo probar](#6-cómo-probar)
-7. [Patrones aplicados](#7-patrones-aplicados)
+5. [Endpoints expuestos](#5-endpoints-expuestos)
+6. [Cómo ejecutar](#6-cómo-ejecutar)
+7. [Cómo probar](#7-cómo-probar)
+8. [Limitaciones conocidas](#8-limitaciones-conocidas)
+9. [Patrones aplicados](#9-patrones-aplicados)
 
 ---
 
 ## 1. Resumen
 
-KrakenD es un **API Gateway declarativo** (toda la lógica vive en `krakend.json`, sin código compilado) que centraliza policies de la rama de tráfico **`api.smartlogix.localhost/*`**. Aplica rate limiting, JWT validation (placeholder hasta tener emisor), CORS y reescribe el path antes de pasar al BFF.
+KrakenD es un **API Gateway declarativo** (toda la lógica vive en `krakend.json`, sin código compilado) que centraliza policies del tráfico `/api/*`. Aplica JWT validation con scopes por endpoint, CORS y rewrite del path antes de pasar al BFF.
 
-**Stack**: KrakenD v2.10 (imagen `devopsfaith/krakend`).
+**Stack**: KrakenD v2.9.4 (imagen `devopsfaith/krakend`).
 
 ## 2. Posición en la arquitectura
 
-El **punto único de entrada** al sistema es **Traefik** (Ingress), no este componente. KrakenD especializa exclusivamente las rutas del host `api.smartlogix.localhost`:
+El **punto único de entrada** es el Ingress, no este componente. KrakenD especializa exclusivamente las rutas que comienzan con `/api/*`:
 
 ```mermaid
 flowchart LR
     Internet((Internet))
 
-    Internet --> Traefik
-    subgraph Edge["Ingress (Traefik)"]
-        Traefik["Traefik v3.5<br/>routing por host"]
+    Internet --> Ingress
+    subgraph Edge["Ingress"]
+        Ingress["Traefik (compose) /<br/>nginx-ingress (k8s)<br/>routing por host + path"]
     end
 
-    Traefik -->|app.smartlogix.localhost| FE[Frontend]
-    Traefik -->|api.smartlogix.localhost| K["KrakenD<br/>(este servicio)"]
-    Traefik -->|bff.smartlogix.localhost| BFF[BFF — debug directo]
-    Traefik -->|traefik.smartlogix.localhost| Dash[Dashboard Traefik]
+    Ingress -->|"/"| FE[Frontend]
+    Ingress -->|"/api/*"| K["KrakenD<br/>(este servicio)"]
 
-    K -->|enruta /api/* al BFF| BFF
-    BFF --> MS["ms-pedido<br/>ms-inventario<br/>ms-envio"]
+    K -->|"/api/<recurso>/* → /<recurso>/*"| BFF[BFF]
+    K -.->|JWKS<br/>RS256 verify| A[ms-auth]
+    BFF --> MS["ms-order, ms-inventory,<br/>ms-shipping, ms-user, ms-auth"]
 
     classDef gw fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     class K gw
@@ -51,14 +64,12 @@ flowchart LR
 
 ### ¿Por qué Ingress + API Gateway separados?
 
-| Capa | Traefik (Ingress) | KrakenD (API Gateway) |
+| Capa | Ingress (Traefik / nginx) | KrakenD (API Gateway) |
 |---|---|---|
 | Granularidad | Plataforma completa | Solo `/api/*` |
-| Responsabilidad | TLS termination, routing por host, redirects, frontend estático | Policies de API: rate limit, JWT, CORS específico de API, transformación |
-| Configuración | YAML (provider File) | JSON declarativo |
+| Responsabilidad | TLS termination, routing por host/path, frontend estático | Policies de API: JWT con scopes, CORS específico, transformación |
+| Configuración | YAML / annotations | JSON declarativo |
 | Equivalencia K8s | Ingress Controller | API Gateway resource |
-
-Esta separación es el patrón estándar en deployments Kubernetes y deja la migración a K8s directa.
 
 ## 3. Responsabilidad
 
@@ -66,102 +77,159 @@ Esta separación es el patrón estándar en deployments Kubernetes y deja la mig
 sequenceDiagram
     autonumber
     participant C as Cliente
-    participant T as Traefik
+    participant I as Ingress
     participant K as KrakenD
+    participant A as ms-auth
     participant B as BFF
 
-    C->>T: GET api.smartlogix.localhost/api/pedidos
-    T->>T: secure-headers, rate-limit, cors-api (middlewares Traefik)
-    T->>K: forward
-    K->>K: validar JWT (cuando esté activo)
-    K->>K: rate limit por endpoint
-    K->>K: rewrite /api/pedidos → /pedidos
-    K->>B: GET /pedidos
-    B-->>K: 200 JSON
-    K-->>T: 200 JSON
-    T-->>C: 200 JSON
+    C->>I: GET app.smartlogix.localhost/api/orders<br/>Authorization: Bearer <jwt>
+    I->>K: forward path /api/orders
+    K->>A: GET /.well-known/jwks.json (cached)
+    A-->>K: JWK Set (public key)
+    K->>K: verify signature RS256
+    K->>K: check scope "read:orders" en claim
+    alt scope OK
+        K->>K: rewrite /api/orders → /orders
+        K->>B: GET /orders
+        B-->>K: 200 JSON
+        K-->>I: 200 JSON (CORS headers)
+        I-->>C: 200 JSON
+    else scope insuficiente
+        K-->>C: 401/403 + ProblemDetail
+    end
 ```
 
-Sobre el tráfico que Traefik le entrega, KrakenD aplica:
+Sobre el tráfico, KrakenD aplica:
 
-- **Routing**: `/api/inventario/*`, `/api/pedidos/*`, `/api/envios/*` → BFF (rewrite quita el prefijo `/api`)
-- **Rate limiting** y throttling configurables por endpoint
-- **JWT validation** (placeholder, se activa cuando exista emisor real Auth0/Keycloak)
-- **CORS**, headers, compresión
+- **Routing**: `/api/inventory/*`, `/api/orders/*`, `/api/shipments/*`, `/api/users/*`, `/api/auth/*` → BFF (rewrite quita el prefijo `/api`)
+- **JWT validation** con verificación de scope claim (`read:inventory`, `write:orders`, etc.)
+- **CORS** configurado para `http://localhost:5173` (frontend dev) y same-origin en producción
+- **Rate limiting** y throttling configurables por endpoint (no activado actualmente)
 
 ## 4. Configuración (`krakend.json`)
 
 ```json
 {
   "endpoints": [
-    { "endpoint": "/api/pedidos/{path}", "method": "GET",
-      "backend": [{ "url_pattern": "/pedidos/{path}", "host": ["http://bff:3000"] }] },
-    ...
+    {
+      "endpoint": "/api/orders",
+      "method": "GET",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:orders"]
+        }
+      },
+      "backend": [{ "url_pattern": "/orders", "host": ["http://bff:3000"] }]
+    }
   ],
   "extra_config": {
+    "security/cors": {
+      "allow_origins": ["http://localhost:5173"],
+      "allow_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "allow_headers": ["Origin", "Authorization", "Content-Type", "Accept"]
+    },
     "router": { "return_error_msg": true },
     "telemetry/logging": { "level": "INFO", "prefix": "[KRAKEND]" }
   }
 }
 ```
 
-- `endpoints[]` — cada uno con `endpoint` (path expuesto) y `backend[]` (host destino dentro de la red Docker `internal`)
-- `extra_config` — middlewares globales (CORS, JWT, logging)
-- JWT validator activo: cada endpoint protegido valida tokens RS256 contra el JWKS de `ms-auth` (`http://ms-auth:8081/.well-known/jwks.json`).
+- `endpoints[]` — cada uno con `endpoint` (path expuesto) y `backend[]` (host destino en la red Docker `internal`)
+- `extra_config.security/cors` — CORS global
+- `auth/validator` por endpoint — JWT RS256 contra el JWKS de `ms-auth` con scope requerido
 
-### 4.1 Seguridad de JWK (dev vs prod)
+### 4.1 Seguridad del JWK (dev vs prod)
 
-Cada validador JWT en `krakend.json` declara:
+Cada validador JWT declara:
 
 ```json
 "disable_jwk_security": true
 ```
 
-Esto desactiva la **validación TLS del endpoint JWKS**, necesario en dev porque `ms-auth` expone JWKS por HTTP plano (`http://ms-auth:8081/.well-known/jwks.json`) dentro de la red interna Docker/k8s.
+Esto desactiva la **validación TLS del endpoint JWKS**, necesario en dev porque `ms-auth` expone JWKS por HTTP plano dentro de la red interna.
 
-**En producción** el JWKS debe servirse por **HTTPS** y este flag debe quedar:
+**En producción** el JWKS debe servirse por **HTTPS** y este flag debe quedar `false`. Buscar/reemplazar global cuando se prepare el entorno productivo.
 
-```json
-"disable_jwk_security": false
-```
+## 5. Endpoints expuestos
 
-Razon: con la bandera en `true`, un atacante en la red interna podría servir un JWKS malicioso sin advertencia de cert; con `false`, KrakenD exige cert válido y solo confía en JWKS autentico. Aplica a todos los endpoints autenticados — buscar/reemplazar global cuando se prepare el entorno productivo.
+| Endpoint público | Método | Scope requerido | Backend |
+|---|---|---|---|
+| `/api/auth/{path}` | POST | público | `/auth/{path}` |
+| `/api/auth/login`, `/api/auth/register` *(matches arriba)* | POST | público | `/auth/...` |
+| `/api/inventory/{path}` | GET/POST/PATCH | `read:inventory` / `write:inventory` | `/inventory/{path}` |
+| `/api/orders` | GET | `read:orders` | `/orders` |
+| `/api/orders` | POST | `write:orders` | `/orders` |
+| `/api/orders/{path}` | GET/POST/PATCH | `read:orders` / `write:orders` | `/orders/{path}` |
+| `/api/shipments` | GET | `read:shipments` | `/shipments` |
+| `/api/shipments` | POST | `write:shipments` | `/shipments` |
+| `/api/shipments/{path}` | GET/POST/PATCH | `read:shipments` / `write:shipments` | `/shipments/{path}` |
+| `/api/users` | GET | `read:users` | `/users` |
+| `/api/users` | POST | `write:users` | `/users` |
+| `/api/users/{path}` | GET/POST/PUT/DELETE | `read:users` / `write:users` | `/users/{path}` |
+| `/api/checkout` | POST | `write:orders` | `/checkout` (BFF saga) |
+| `/api/dashboard` | GET | `read:orders` | `/dashboard` (BFF composed) |
 
-## 5. Cómo ejecutar
+## 6. Cómo ejecutar
 
 ### Vía Docker (recomendado)
 
 ```bash
-docker compose up -d apigateway
+docker compose up -d api-gateway
 ```
 
 ### Local (sin Docker)
 
 ```bash
 docker run -p 8080:8080 -v $(pwd)/krakend.json:/etc/krakend/krakend.json \
-  devopsfaith/krakend:2.10 run -c /etc/krakend/krakend.json
+  devopsfaith/krakend:2.9.4 run -c /etc/krakend/krakend.json
 ```
 
 ### Validar la config sin levantar el servicio
 
 ```bash
 docker run --rm -v $(pwd)/krakend.json:/etc/krakend/krakend.json \
-  devopsfaith/krakend:2.10 check -c /etc/krakend/krakend.json
+  devopsfaith/krakend:2.9.4 check -c /etc/krakend/krakend.json
 ```
 
-## 6. Cómo probar
+### Kubernetes
 
-Con Traefik corriendo + `hosts` configurado:
+En k8s el `krakend.json` se inyecta como ConfigMap a través de `configMapGenerator` en `backend/api-gateway/k8s/kustomization.yaml`. Cualquier cambio al JSON dispara un nuevo hash y rolling update del Deployment.
+
+## 7. Cómo probar
 
 ```bash
-curl http://api.smartlogix.localhost/api/inventario/productos
-curl http://api.smartlogix.localhost/api/pedidos
-curl http://api.smartlogix.localhost/api/envios
+# Login para obtener token
+TOKEN=$(curl -sS -X POST http://app.smartlogix.localhost/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@smartlogix.cl","password":"..."}' | jq -r .accessToken)
+
+# Llamada autenticada
+curl -H "Authorization: Bearer $TOKEN" http://app.smartlogix.localhost/api/inventory/products
+curl -H "Authorization: Bearer $TOKEN" http://app.smartlogix.localhost/api/orders
+curl -H "Authorization: Bearer $TOKEN" http://app.smartlogix.localhost/api/shipments
+
+# Sin token → 401
+curl -i http://app.smartlogix.localhost/api/inventory/products
 ```
 
-## 7. Patrones aplicados
+## 8. Limitaciones conocidas
 
-- **API Gateway** (Fowler) — agrega cross-cutting concerns sobre la rama de tráfico que le delega el Ingress
-- **Ingress + API Gateway separados** — TLS/host routing (Traefik) vs policies de API (KrakenD)
+| Limitación | Detalle | Workaround |
+|---|---|---|
+| `{path}` wildcard único | El parámetro `{path}` en gin (motor de Krakend) captura **un solo segmento**. Endpoints como `/api/inventory/stock/low` (2 segmentos) no matchean `/api/inventory/{path}` | Agregar entrada específica al `krakend.json` |
+| Conflicto de wildcards | Dos endpoints con wildcards de nombres distintos (ej. `:id` y `:path`) bajo el mismo prefijo causan **panic** al startup de gin | Usar el mismo nombre de variable en todos los endpoints bajo el mismo prefijo |
+| Routing flat | KrakenD no soporta `regex` ni `glob` en `endpoint` paths | Listar cada endpoint explícitamente |
+
+## 9. Patrones aplicados
+
+- **API Gateway** (Fowler) — agrega cross-cutting concerns sobre `/api/*`
+- **Ingress + API Gateway separados** — TLS/host routing (Ingress) vs policies de API (KrakenD)
+- **JWT validation con JWKS** — verificación asimétrica RS256 sin compartir secret
+- **Scope-based authorization** — cada endpoint declara su scope mínimo
 - **Backend-for-frontend isolation** — KrakenD enruta al BFF, **nunca** a los MS directamente
 - **Declarative configuration** — sin código compilado; toda la lógica vive en `krakend.json` versionado
+- **Same-origin via path-based routing** (k8s) — el ingress envía `/` al frontend y `/api/*` al gateway en el mismo host, eliminando CORS para el SPA en producción
