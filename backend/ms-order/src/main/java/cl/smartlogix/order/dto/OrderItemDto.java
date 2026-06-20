@@ -5,20 +5,20 @@ import cl.smartlogix.order.model.OrderItem;
 import java.math.BigDecimal;
 
 public record OrderItemDto(
-    Long idItem,
-    Long idProducto,
+    Long itemId,
+    Long productId,
     String sku,
-    Integer cantidad,
-    BigDecimal precioUnitario,
+    Integer quantity,
+    BigDecimal unitPrice,
     BigDecimal subtotal
 ) {
     public static OrderItemDto from(OrderItem item) {
         return new OrderItemDto(
-            item.getIdItem(),
-            item.getIdProducto(),
+            item.getId(),
+            item.getProductId(),
             item.getSku(),
-            item.getCantidad(),
-            item.getPrecioUnitario(),
+            item.getQuantity(),
+            item.getUnitPrice(),
             item.getSubtotal()
         );
     }

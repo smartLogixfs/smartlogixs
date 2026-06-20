@@ -7,12 +7,12 @@ import java.math.BigDecimal;
 
 public record UpdateProductRequest(
     @Size(max = 200)
-    String nombre,
+    String name,
 
-    String descripcion,
+    String description,
 
-    @DecimalMin(value = "0.0", message = "precio debe ser >= 0")
-    BigDecimal precio,
+    @DecimalMin(value = "0.0", message = "price debe ser >= 0")
+    BigDecimal price,
 
-    Boolean activo
+    Boolean active
 ) {}

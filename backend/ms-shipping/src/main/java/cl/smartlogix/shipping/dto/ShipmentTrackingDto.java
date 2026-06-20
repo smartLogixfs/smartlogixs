@@ -6,19 +6,19 @@ import cl.smartlogix.shipping.model.ShipmentState;
 import java.time.OffsetDateTime;
 
 public record ShipmentTrackingDto(
-    Long idSeguimiento,
-    ShipmentState estado,
-    String ubicacion,
-    String comentario,
+    Long trackingId,
+    ShipmentState status,
+    String location,
+    String comment,
     OffsetDateTime createdAt
 ) {
-    public static ShipmentTrackingDto from(ShipmentTracking s) {
+    public static ShipmentTrackingDto from(ShipmentTracking t) {
         return new ShipmentTrackingDto(
-            s.getIdSeguimiento(),
-            s.getEstado(),
-            s.getUbicacion(),
-            s.getComentario(),
-            s.getCreatedAt()
+            t.getId(),
+            t.getStatus(),
+            t.getLocation(),
+            t.getComment(),
+            t.getCreatedAt()
         );
     }
 }

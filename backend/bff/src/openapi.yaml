@@ -1,0 +1,353 @@
+openapi: 3.0.3
+info:
+  title: SmartLogix BFF - API
+  version: 1.0.0
+  description: |
+    Backend For Frontend de SmartLogix. Compone llamadas a los 5 microservicios Spring Boot
+    y expone endpoints optimizados para el frontend React.
+
+    **Endpoints compuestos**: `/checkout`, `/dashboard`, `/pedidos/{id}/full`
+    **Endpoints proxy**: `/inventario/*`, `/pedidos/*`, `/envios/*`, `/usuarios/*`, `/auth/*`
+
+    Cada microservicio tambien expone su propio Swagger UI en `<ms>:<puerto>/swagger-ui.html`.
+  contact:
+    name: Equipo Backend SmartLogix
+    email: soporte@smartlogix.cl
+  license:
+    name: MIT
+
+servers:
+  - url: http://bff.smartlogix.localhost
+    description: BFF via Traefik (dev local)
+  - url: http://localhost:3000
+    description: BFF directo (dev local)
+
+tags:
+  - name: Health
+    description: Estado del servicio
+  - name: Auth
+    description: Login y registro (proxy a ms-auth)
+  - name: Composite
+    description: Endpoints agregados (saga, dashboard)
+  - name: Inventory
+    description: Productos, bodegas y stock (proxy/agregado a ms-inventory)
+  - name: Orders
+    description: Pedidos (proxy a ms-order)
+  - name: Shipments
+    description: Envios (proxy a ms-shipping)
+  - name: Users
+    description: Usuarios (proxy a ms-user)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Health:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        service: { type: string, example: bff }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: paola@smartlogix.cl }
+        password: { type: string, format: password, example: secret123 }
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string, description: JWT firmado en RS256 }
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, example: Paola Soler }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+
+    CheckoutRequest:
+      type: object
+      required: [idCliente, items, idBodega, envio]
+      properties:
+        idCliente: { type: integer, example: 42 }
+        idBodega: { type: integer, example: 1 }
+        items:
+          type: array
+          items:
+            type: object
+            required: [idProducto, cantidad]
+            properties:
+              idProducto: { type: integer }
+              cantidad: { type: integer, minimum: 1 }
+        envio:
+          type: object
+          required: [direccionDestino]
+          properties:
+            direccionDestino: { type: string }
+            idTransportista: { type: integer }
+
+    Dashboard:
+      type: object
+      properties:
+        pedidos:
+          type: object
+          properties:
+            total: { type: integer }
+            porEstado: { type: object, additionalProperties: { type: integer } }
+        envios:
+          type: object
+          properties:
+            total: { type: integer }
+            porEstado: { type: object, additionalProperties: { type: integer } }
+        inventario:
+          type: object
+          properties:
+            productosStockBajo: { type: integer }
+
+    Product:
+      type: object
+      properties:
+        idProducto: { type: integer }
+        sku: { type: string }
+        nombre: { type: string }
+        descripcion: { type: string }
+        precio: { type: number }
+        activo: { type: boolean }
+        stock:
+          type: object
+          properties:
+            cantidad: { type: integer }
+            cantReservada: { type: integer }
+            disponible: { type: integer }
+
+    Shipment:
+      type: object
+      properties:
+        idEnvio: { type: integer }
+        idPedido: { type: integer }
+        trackingNumber: { type: string }
+        estado: { type: string, enum: [CREADO, ASIGNADO, EN_RUTA, INCIDENCIA, ENTREGADO] }
+        direccionDestino: { type: string }
+
+    ProblemDetail:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check del BFF
+      responses:
+        '200':
+          description: BFF activo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login y obtencion de JWT
+      description: Proxy a ms-auth `/api/auth/login`. Devuelve accessToken (RS256).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Credenciales invalidas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetail' }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registro de usuario nuevo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { description: Usuario creado }
+        '409': { description: Email ya registrado }
+
+  /checkout:
+    post:
+      tags: [Composite]
+      summary: Saga de checkout (crear pedido + reservar stock + crear envio)
+      description: |
+        Coordina ms-order, ms-inventory y ms-shipping en una saga simplificada.
+        Si alguna reserva falla, libera las reservas previas (best-effort).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutRequest' }
+      responses:
+        '201': { description: Pedido creado, stock reservado, envio creado }
+        '409':
+          description: Stock insuficiente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetail' }
+
+  /dashboard:
+    get:
+      tags: [Composite]
+      summary: Agregados de estado del sistema
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Resumen de pedidos, envios e inventario
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+
+  /pedidos/{id}/full:
+    get:
+      tags: [Composite]
+      summary: Pedido + items + envio asociado + estado de stock
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Pedido completo }
+        '404': { description: Pedido no encontrado }
+
+  /inventario/productos-con-stock:
+    get:
+      tags: [Inventory]
+      summary: Lista de productos con su stock disponible
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+
+  /inventario/productos:
+    post:
+      tags: [Inventory]
+      summary: Crear producto
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Product' }
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+
+  /inventario/{path}:
+    get:
+      tags: [Inventory]
+      summary: Proxy a ms-inventory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema: { type: string }
+          description: 'Cualquier subpath: productos, bodegas, stock, etc.'
+      responses:
+        '200': { description: OK (delegado a ms-inventory) }
+
+  /pedidos:
+    get:
+      tags: [Orders]
+      summary: Listar pedidos
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: estado
+          schema: { type: string }
+      responses:
+        '200': { description: Lista de pedidos }
+
+  /envios:
+    get:
+      tags: [Shipments]
+      summary: Listar envios
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de envios
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Shipment' }
+    post:
+      tags: [Shipments]
+      summary: Crear envio
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Shipment' }
+      responses:
+        '201': { description: Envio creado }
+
+  /envios/{id}/estado:
+    patch:
+      tags: [Shipments]
+      summary: Actualizar estado de envio
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado: { type: string }
+                ubicacion: { type: string }
+                comentario: { type: string }
+      responses:
+        '200': { description: Estado actualizado }
+
+  /usuarios:
+    get:
+      tags: [Users]
+      summary: Listar usuarios (proxy ms-user)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Lista de usuarios }

@@ -5,9 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UpdateOrderState(
-    @NotNull(message = "estado es obligatorio")
-    OrderStatus estado,
+    @NotNull(message = "status es obligatorio")
+    OrderStatus status,
 
     @Size(max = 255)
-    String motivo
+    String reason
 ) {}

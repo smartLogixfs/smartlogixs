@@ -32,134 +32,489 @@
         }
       ]
     },
-
     {
-      "endpoint": "/api/inventario/{path}",
-      "method": "GET",
-      "input_headers": ["Authorization", "Content-Type"],
-      "output_encoding": "no-op",
-      "backend": [
-        {
-          "url_pattern": "/inventario/{path}",
-          "encoding": "no-op",
-          "host": ["http://bff:3000"]
-        }
-      ]
-    },
-    {
-      "endpoint": "/api/inventario/{path}",
+      "endpoint": "/api/auth/{path}",
       "method": "POST",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
       "backend": [
         {
-          "url_pattern": "/inventario/{path}",
-          "encoding": "no-op",
-          "host": ["http://bff:3000"]
-        }
-      ]
-    },
-
-    {
-      "endpoint": "/api/pedidos/{path}",
-      "method": "GET",
-      "input_headers": ["Authorization", "Content-Type"],
-      "output_encoding": "no-op",
-      "backend": [
-        {
-          "url_pattern": "/pedidos/{path}",
+          "url_pattern": "/auth/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/pedidos/{path}",
+      "endpoint": "/api/users/login",
       "method": "POST",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
       "backend": [
         {
-          "url_pattern": "/pedidos/{path}",
+          "url_pattern": "/users/login",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
-
     {
-      "endpoint": "/api/envios/{path}",
+      "endpoint": "/api/inventory/{path}",
       "method": "GET",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:inventory"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/envios/{path}",
+          "url_pattern": "/inventory/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/envios/{path}",
+      "endpoint": "/api/inventory/{path}",
       "method": "POST",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:inventory"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/envios/{path}",
+          "url_pattern": "/inventory/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/usuarios/{path}",
+      "endpoint": "/api/orders/{path}",
       "method": "GET",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:orders"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/usuarios/{path}",
+          "url_pattern": "/orders/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/usuarios/{path}",
+      "endpoint": "/api/orders/{path}",
       "method": "POST",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:orders"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/usuarios/{path}",
+          "url_pattern": "/orders/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/usuarios/{path}",
+      "endpoint": "/api/shipments/{path}",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/shipments/{path}",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/{path}",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:users"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/users/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/{path}",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:users"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/users/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/{path}",
       "method": "PUT",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:users"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/usuarios/{path}",
+          "url_pattern": "/users/{path}",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }
       ]
     },
     {
-      "endpoint": "/api/usuarios/{path}",
+      "endpoint": "/api/users/{path}",
       "method": "DELETE",
       "input_headers": ["Authorization", "Content-Type"],
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:users"]
+        }
+      },
       "backend": [
         {
-          "url_pattern": "/usuarios/{path}",
+          "url_pattern": "/users/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/checkout",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:orders"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/checkout",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/dashboard",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:orders"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/dashboard",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/inventory/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:inventory"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/inventory/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/orders/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:orders"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/orders/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/shipments/{path}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments/{path}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/orders",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:orders"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/orders",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/orders",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:orders"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/orders",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/shipments",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/shipments",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:users"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/users",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:users"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/users",
           "encoding": "no-op",
           "host": ["http://bff:3000"]
         }

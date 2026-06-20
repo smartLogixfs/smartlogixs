@@ -3,19 +3,19 @@ package cl.smartlogix.shipping.dto;
 import cl.smartlogix.shipping.model.Carrier;
 
 public record CarrierDto(
-    Long idTransportista,
-    String nombre,
+    Long carrierId,
+    String name,
     String rut,
-    String telefonoContacto,
-    Boolean activo
+    String contactPhone,
+    Boolean active
 ) {
-    public static CarrierDto from(Carrier t) {
+    public static CarrierDto from(Carrier c) {
         return new CarrierDto(
-            t.getIdTransportista(),
-            t.getNombre(),
-            t.getRut(),
-            t.getTelefonoContacto(),
-            t.getActivo()
+            c.getId(),
+            c.getName(),
+            c.getRut(),
+            c.getContactPhone(),
+            c.getActive()
         );
     }
 }

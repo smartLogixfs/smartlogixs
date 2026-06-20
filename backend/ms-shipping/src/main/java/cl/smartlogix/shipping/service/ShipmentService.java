@@ -10,14 +10,14 @@ import cl.smartlogix.shipping.model.ShipmentState;
 import java.util.List;
 
 public interface ShipmentService {
-    ShipmentDto crear(CreateShipmentRequest req);
+    ShipmentDto create(CreateShipmentRequest req);
     ShipmentDto findById(Long id);
     ShipmentDto findByTracking(String trackingNumber);
-    List<ShipmentDto> findByPedido(Long idPedido);
+    List<ShipmentDto> findByOrder(Long orderId);
     List<ShipmentDto> findAll();
-    List<ShipmentDto> findByEstado(ShipmentState estado);
-    List<ShipmentTrackingDto> historial(Long idEnvio);
+    List<ShipmentDto> findByStatus(ShipmentState status);
+    List<ShipmentTrackingDto> history(Long shipmentId);
 
-    ShipmentDto asignarTransportista(Long idEnvio, AssingCarierRequest req);
-    ShipmentDto cambiarEstado(Long idEnvio, UpdateShipmentRStatusRequest req);
+    ShipmentDto assignCarrier(Long shipmentId, AssingCarierRequest req);
+    ShipmentDto changeStatus(Long shipmentId, UpdateShipmentRStatusRequest req);
 }

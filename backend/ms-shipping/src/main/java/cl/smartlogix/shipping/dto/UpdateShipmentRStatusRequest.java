@@ -5,12 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UpdateShipmentRStatusRequest(
-    @NotNull(message = "estado es obligatorio")
-    ShipmentState estado,
+    @NotNull(message = "status es obligatorio")
+    ShipmentState status,
 
     @Size(max = 255)
-    String ubicacion,
+    String location,
 
     @Size(max = 500)
-    String comentario
+    String comment
 ) {}

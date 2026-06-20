@@ -415,6 +415,25 @@ docker compose ps          # esperar 10 contenedores Up
 | http://bff.smartlogix.localhost/dashboard | Agregados de estado del sistema |
 | http://traefik.smartlogix.localhost | Dashboard Traefik |
 
+### 8.3.1 Documentación interactiva (Swagger / OpenAPI)
+
+Cada microservicio Spring Boot expone su propio Swagger UI. El BFF agrega su
+propia documentación con `swagger-ui-express`.
+
+| Componente | Swagger UI | OpenAPI spec |
+|---|---|---|
+| **BFF** | http://bff.smartlogix.localhost/docs | `/openapi.json` |
+| **ms-auth** | http://localhost:8081/swagger-ui.html | `/v3/api-docs` |
+| **ms-user** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
+| **ms-order** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
+| **ms-inventory** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
+| **ms-shipping** | http://localhost:8080/swagger-ui.html | `/v3/api-docs` |
+
+> En docker-compose los MS no exponen puerto al host (red `internal`). Para abrir
+> los Swagger directamente en navegador usa `docker compose exec` o agrega
+> `ports:` temporalmente al servicio que necesites inspeccionar. En k8s puedes
+> hacer `kubectl -n smartlogix port-forward svc/ms-order 8080:8080`.
+
 ### 8.4 Comandos útiles
 
 ```bash

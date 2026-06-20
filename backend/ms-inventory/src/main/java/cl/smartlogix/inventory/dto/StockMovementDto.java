@@ -6,20 +6,20 @@ import cl.smartlogix.inventory.model.MovementType;
 import java.time.OffsetDateTime;
 
 public record StockMovementDto(
-    Long idMovimiento,
-    Long idStock,
-    MovementType tipo,
-    Integer cantidad,
-    String referenciaPedido,
+    Long movementId,
+    Long stockId,
+    MovementType type,
+    Integer quantity,
+    String orderReference,
     OffsetDateTime createdAt
 ) {
     public static StockMovementDto from(StockMovement m) {
         return new StockMovementDto(
-            m.getIdMovimiento(),
-            m.getStock().getIdStock(),
-            m.getTipo(),
-            m.getCantidad(),
-            m.getReferenciaPedido(),
+            m.getId(),
+            m.getStock().getId(),
+            m.getType(),
+            m.getQuantity(),
+            m.getOrderReference(),
             m.getCreatedAt()
         );
     }

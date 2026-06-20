@@ -7,18 +7,18 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record CreateShipmentRequest(
-    @NotNull(message = "idPedido es obligatorio")
-    Long idPedido,
+    @NotNull(message = "orderId es obligatorio")
+    Long orderId,
 
-    @NotBlank(message = "direccionDestino es obligatoria")
+    @NotBlank(message = "destinationAddress es obligatoria")
     @Size(max = 255)
-    String direccionDestino,
+    String destinationAddress,
 
     @Size(max = 120)
-    String comuna,
+    String district,
 
     @Size(max = 120)
     String region,
 
-    LocalDate fechaEstimada
+    LocalDate estimatedDate
 ) {}

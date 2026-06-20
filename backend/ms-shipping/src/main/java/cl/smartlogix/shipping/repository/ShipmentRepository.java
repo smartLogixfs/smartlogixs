@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     Optional<Shipment> findByTrackingNumber(String trackingNumber);
-    List<Shipment> findByIdPedido(Long idPedido);
-    List<Shipment> findByEstado(ShipmentState estado);
+    List<Shipment> findByOrderId(Long orderId);
+    List<Shipment> findByStatus(ShipmentState status);
 }

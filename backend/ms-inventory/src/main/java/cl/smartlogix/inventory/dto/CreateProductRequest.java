@@ -12,13 +12,13 @@ public record CreateProductRequest(
     @Size(max = 64)
     String sku,
 
-    @NotBlank(message = "nombre es obligatorio")
+    @NotBlank(message = "name es obligatorio")
     @Size(max = 200)
-    String nombre,
+    String name,
 
-    String descripcion,
+    String description,
 
     @NotNull
-    @DecimalMin(value = "0.0", message = "precio debe ser >= 0")
-    BigDecimal precio
+    @DecimalMin(value = "0.0", message = "price debe ser >= 0")
+    BigDecimal price
 ) {}

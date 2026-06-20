@@ -13,32 +13,32 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record CreateOrderRequest(
-    OrderType tipo,
+    OrderType type,
 
-    @NotBlank(message = "idCliente es obligatorio")
+    @NotBlank(message = "customerId es obligatorio")
     @Size(max = 64)
-    String idCliente,
+    String customerId,
 
     @Size(max = 64)
-    String idMarketplace,
+    String marketplaceId,
 
     @NotEmpty(message = "El pedido debe tener al menos un ítem")
     @Valid
     List<ItemRequest> items
 ) {
     public record ItemRequest(
-        @NotNull(message = "idProducto es obligatorio")
-        Long idProducto,
+        @NotNull(message = "productId es obligatorio")
+        Long productId,
 
         @NotBlank(message = "sku es obligatorio")
         @Size(max = 64)
         String sku,
 
-        @NotNull @Min(value = 1, message = "cantidad debe ser >= 1")
-        Integer cantidad,
+        @NotNull @Min(value = 1, message = "quantity debe ser >= 1")
+        Integer quantity,
 
         @NotNull
-        @DecimalMin(value = "0.0", inclusive = false, message = "precioUnitario debe ser > 0")
-        BigDecimal precioUnitario
+        @DecimalMin(value = "0.0", inclusive = false, message = "unitPrice debe ser > 0")
+        BigDecimal unitPrice
     ) {}
 }

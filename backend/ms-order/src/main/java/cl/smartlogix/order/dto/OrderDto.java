@@ -9,33 +9,33 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public record OrderDto(
-    Long idPedido,
-    String codigo,
-    OrderType tipo,
-    OrderStatus estado,
-    String idCliente,
-    String idMarketplace,
+    Long orderId,
+    String code,
+    OrderType type,
+    OrderStatus status,
+    String customerId,
+    String marketplaceId,
     BigDecimal subtotal,
-    BigDecimal impuesto,
+    BigDecimal tax,
     BigDecimal total,
     List<OrderItemDto> items,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
-    public static OrderDto from(Order p) {
+    public static OrderDto from(Order o) {
         return new OrderDto(
-            p.getIdPedido(),
-            p.getCodigo(),
-            p.getTipo(),
-            p.getEstado(),
-            p.getIdCliente(),
-            p.getIdMarketplace(),
-            p.getSubtotal(),
-            p.getImpuesto(),
-            p.getTotal(),
-            p.getItems().stream().map(OrderItemDto::from).toList(),
-            p.getCreatedAt(),
-            p.getUpdatedAt()
+            o.getId(),
+            o.getCode(),
+            o.getType(),
+            o.getStatus(),
+            o.getCustomerId(),
+            o.getMarketplaceId(),
+            o.getSubtotal(),
+            o.getTax(),
+            o.getTotal(),
+            o.getItems().stream().map(OrderItemDto::from).toList(),
+            o.getCreatedAt(),
+            o.getUpdatedAt()
         );
     }
 }

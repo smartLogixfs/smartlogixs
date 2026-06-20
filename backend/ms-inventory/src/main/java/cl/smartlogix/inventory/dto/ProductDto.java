@@ -6,23 +6,23 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record ProductDto(
-    Long idProducto,
+    Long productId,
     String sku,
-    String nombre,
-    String descripcion,
-    BigDecimal precio,
-    Boolean activo,
+    String name,
+    String description,
+    BigDecimal price,
+    Boolean active,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
     public static ProductDto from(Product p) {
         return new ProductDto(
-            p.getIdProducto(),
+            p.getId(),
             p.getSku(),
-            p.getNombre(),
-            p.getDescripcion(),
-            p.getPrecio(),
-            p.getActivo(),
+            p.getName(),
+            p.getDescription(),
+            p.getPrice(),
+            p.getActive(),
             p.getCreatedAt(),
             p.getUpdatedAt()
         );

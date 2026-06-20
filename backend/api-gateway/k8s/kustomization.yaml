@@ -4,3 +4,10 @@ namespace: smartlogix
 resources:
   - deployment.yaml
   - service.yaml
+
+# El krakend.json se inyecta como ConfigMap (la imagen base de KrakenD lo
+# espera en /etc/krakend/krakend.json — montado via volumeMount en el Deployment).
+configMapGenerator:
+  - name: krakend-config
+    files:
+      - krakend.json=../krakend.json

@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface CarrierRepository extends JpaRepository<Carrier, Long> {
     Optional<Carrier> findByRut(String rut);
-    List<Carrier> findByActivoTrue();
+    List<Carrier> findByActiveTrue();
 }

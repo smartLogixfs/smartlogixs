@@ -21,16 +21,16 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository repository;
 
     @Override
-    public ProductDto crear(CreateProductRequest req) {
+    public ProductDto create(CreateProductRequest req) {
         if (repository.existsBySku(req.sku())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "SKU ya existe: " + req.sku());
         }
         Product p = Product.builder()
             .sku(req.sku())
-            .nombre(req.nombre())
-            .descripcion(req.descripcion())
-            .precio(req.precio())
-            .activo(Boolean.TRUE)
+            .name(req.name())
+            .description(req.description())
+            .price(req.price())
+            .active(Boolean.TRUE)
             .build();
         return ProductDto.from(repository.save(p));
     }
@@ -38,7 +38,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductDto findById(Long id) {
-        return ProductDto.from(buscar(id));
+        return ProductDto.from(find(id));
     }
 
     @Override
@@ -56,16 +56,16 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductDto actualizar(Long id, UpdateProductRequest req) {
-        Product p = buscar(id);
-        if (req.nombre() != null)      p.setNombre(req.nombre());
-        if (req.descripcion() != null) p.setDescripcion(req.descripcion());
-        if (req.precio() != null)      p.setPrecio(req.precio());
-        if (req.activo() != null)      p.setActivo(req.activo());
+    public ProductDto update(Long id, UpdateProductRequest req) {
+        Product p = find(id);
+        if (req.name() != null)        p.setName(req.name());
+        if (req.description() != null) p.setDescription(req.description());
+        if (req.price() != null)       p.setPrice(req.price());
+        if (req.active() != null)      p.setActive(req.active());
         return ProductDto.from(repository.save(p));
     }
 
-    private Product buscar(Long id) {
+    private Product find(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + id));
     }

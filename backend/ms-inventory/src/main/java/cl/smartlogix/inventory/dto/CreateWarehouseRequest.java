@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record CreateWarehouseRequest(
-    @NotBlank(message = "nombre es obligatorio")
+    @NotBlank(message = "name es obligatorio")
     @Size(max = 120)
-    String nombre,
+    String name,
 
     @Size(max = 255)
-    String ubicacion
+    String location
 ) {}

@@ -3,17 +3,17 @@ package cl.smartlogix.inventory.dto;
 import cl.smartlogix.inventory.model.Warehouse;
 
 public record WarehouseDto(
-    Long idBodega,
-    String nombre,
-    String ubicacion,
-    Boolean activo
+    Long warehouseId,
+    String name,
+    String location,
+    Boolean active
 ) {
-    public static WarehouseDto from(Warehouse b) {
+    public static WarehouseDto from(Warehouse w) {
         return new WarehouseDto(
-            b.getIdBodega(),
-            b.getNombre(),
-            b.getUbicacion(),
-            b.getActivo()
+            w.getId(),
+            w.getName(),
+            w.getLocation(),
+            w.getActive()
         );
     }
 }
