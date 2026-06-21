@@ -1,0 +1,54 @@
+name: smartlogix-sonarqube
+
+# Stack local de SonarQube (Community Build) para el analisis de calidad y
+# cobertura de SmartLogix (EFT). Independiente del docker-compose.yml de la
+# aplicacion: levantalo solo cuando vayas a analizar.
+#
+#   docker compose -f infra/sonarqube/docker-compose.yml up -d
+#   # dashboard en http://localhost:9000  (admin / admin la primera vez)
+#
+# Requisito del host (Docker Desktop / WSL2): vm.max_map_count >= 524288.
+# Ver infra/sonarqube/README.md.
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: smartlogix-sonarqube
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  db:
+    image: postgres:16-alpine
+    container_name: smartlogix-sonarqube-db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonarqube_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_db:
