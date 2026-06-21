@@ -51,7 +51,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Test + cobertura JaCoCo
-        run: ./gradlew test jacocoTestReport --no-daemon --console=plain
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test jacocoTestReport --no-daemon --console=plain
 
       - name: Subir reporte de cobertura
         if: always()
