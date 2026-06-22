@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: smartlogix
+
+# Kustomization a nivel del gateway: envuelve los manifiestos de k8s/ y genera el
+# ConfigMap con krakend.json desde su ubicacion canonica (la misma que usa el
+# Dockerfile). Asi se evita el path '../krakend.json' que kustomize rechaza por
+# seguridad cuando el generator vive dentro de k8s/.
+resources:
+  - k8s
+
+# La imagen base de KrakenD espera la config en /etc/krakend/krakend.json,
+# montada via volumeMount en el Deployment.
+configMapGenerator:
+  - name: krakend-config
+    files:
+      - krakend.json=krakend.json

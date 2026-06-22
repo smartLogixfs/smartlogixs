@@ -5,9 +5,9 @@ resources:
   - deployment.yaml
   - service.yaml
 
-# El krakend.json se inyecta como ConfigMap (la imagen base de KrakenD lo
-# espera en /etc/krakend/krakend.json — montado via volumeMount en el Deployment).
-configMapGenerator:
-  - name: krakend-config
-    files:
-      - krakend.json=../krakend.json
+# NOTA: el ConfigMap con krakend.json NO se genera aqui. kustomize bloquea leer
+# archivos fuera del directorio del kustomization (../krakend.json), por lo que el
+# configMapGenerator vive en ../kustomization.yaml (nivel del gateway), donde
+# krakend.json es local. Para desplegar el gateway de forma independiente, usar:
+#   kubectl apply -k backend/api-gateway
+# (no  backend/api-gateway/k8s, que no incluye el ConfigMap).

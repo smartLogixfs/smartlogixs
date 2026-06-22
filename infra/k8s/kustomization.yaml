@@ -35,7 +35,7 @@ resources:
 
   # 3) Capa de adaptacion + gateway + presentacion
   - ../../backend/bff/k8s
-  - ../../backend/api-gateway/k8s
+  - ../../backend/api-gateway      # nivel gateway: incluye k8s/ + ConfigMap de krakend.json
   - ../../frontend/k8s
 
   # 4) Ingress con Traefik (replica los middlewares del stack docker-compose).
