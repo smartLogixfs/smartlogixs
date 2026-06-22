@@ -1,0 +1,114 @@
+# Ingress para Kubernetes usando **Traefik** como Ingress Controller.
+#
+# Reproduce 1:1 los middlewares de `infra/traefik/dynamic/middlewares.yml`
+# (secure-headers, rate-limit, cors-api) mediante CRDs nativos de Traefik
+# (Middleware + IngressRoute), de modo que el despliegue en k8s conserva las
+# mismas politicas de borde que el stack de Docker Compose.
+#
+# Requisitos:
+#   - Traefik instalado en el cluster (provee los CRDs traefik.io/v1alpha1 y el
+#     IngressClass 'traefik'). Ej.:
+#       helm repo add traefik https://traefik.github.io/charts
+#       helm install traefik traefik/traefik -n traefik --create-namespace
+#   - El entryPoint 'web' (:80) es el de un install estandar de Traefik.
+#
+# Alternativa: `infra/k8s/ingress.yaml` (nginx-ingress). Usar SOLO UNO de los dos
+# (el kustomization raiz referencia este por defecto).
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: secure-headers
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  headers:
+    frameDeny: true
+    contentTypeNosniff: true
+    browserXssFilter: true
+    referrerPolicy: "strict-origin-when-cross-origin"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  rateLimit:
+    average: 100
+    burst: 50
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-api
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    accessControlAllowOriginList:
+      - "http://app.smartlogix.localhost"
+    accessControlAllowHeaders:
+      - "Content-Type"
+      - "Authorization"
+    accessControlMaxAge: 100
+    addVaryHeader: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: smartlogix-ingressroute
+  namespace: smartlogix
+  labels:
+    app.kubernetes.io/part-of: smartlogix
+spec:
+  entryPoints:
+    - web
+  routes:
+    # app.smartlogix.localhost  ->  SPA, con /api same-origin hacia el gateway.
+    # La regla con PathPrefix(/api) tiene mayor prioridad que la del Host solo,
+    # asi que el trafico /api va al gateway y el resto al frontend.
+    - match: Host(`app.smartlogix.localhost`) && PathPrefix(`/api`)
+      kind: Rule
+      services:
+        - name: api-gateway
+          port: 8080
+      middlewares:
+        - name: secure-headers
+        - name: rate-limit
+        - name: cors-api
+    - match: Host(`app.smartlogix.localhost`)
+      kind: Rule
+      services:
+        - name: frontend
+          port: 80
+      middlewares:
+        - name: secure-headers
+
+    # api.smartlogix.localhost  ->  API Gateway (KrakenD) directo.
+    - match: Host(`api.smartlogix.localhost`)
+      kind: Rule
+      services:
+        - name: api-gateway
+          port: 8080
+      middlewares:
+        - name: secure-headers
+        - name: rate-limit
+        - name: cors-api
+
+    # bff.smartlogix.localhost  ->  BFF directo (passthrough, igual que en compose).
+    - match: Host(`bff.smartlogix.localhost`)
+      kind: Rule
+      services:
+        - name: bff
+          port: 3000

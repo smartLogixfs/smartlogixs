@@ -38,5 +38,8 @@ resources:
   - ../../backend/api-gateway/k8s
   - ../../frontend/k8s
 
-  # 4) Ingress (reemplaza Traefik)
-  - ingress.yaml
+  # 4) Ingress con Traefik (replica los middlewares del stack docker-compose).
+  #    Alternativa nginx: comentar la linea de abajo y descomentar 'ingress.yaml'.
+  #    Usar SOLO UNO.
+  - ingress-traefik.yaml
+  # - ingress.yaml   # nginx-ingress (requiere ingressClassName: nginx)
