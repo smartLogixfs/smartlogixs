@@ -334,7 +334,7 @@ erDiagram
     }
 ```
 
-Detalle completo en [`docs/modelo-datos.md`](docs/modelo-datos.md).
+Detalle completo en [`docs/referencias/modelo-datos.md`](docs/referencias/modelo-datos.md).
 
 ### 5.1 Máquinas de estado
 
@@ -402,7 +402,7 @@ stateDiagram-v2
 - **Schema-first migrations** (Flyway autoritativo, Hibernate en `ddl-auto=validate`)
 - **JWT RS256 con JWKS** (ms-auth firma, gateway verifica via endpoint público)
 
-Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf).
+Análisis completo en [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs/referencias/analisis-patrones-arquetipos.pdf).
 
 ---
 
@@ -525,10 +525,8 @@ smartlogixs/
 │   ├── traefik/                      # config Traefik (compose)
 │   └── k8s/                          # manifests k8s (kustomize)
 ├── docs/
-│   ├── modelo-datos.md
-│   ├── analisis-patrones-arquetipos.pdf
-│   ├── login-jwt-sequence.md
-│   └── ...
+│   ├── referencias/                 # docs referenciados por los READMEs
+│   └── diagramas/                   # diagramas de arquitectura (PNG)
 ├── frontend/                         # SPA React 19 + TypeScript + Tailwind
 │   ├── src/
 │   │   ├── client/                   # apiClient.ts
@@ -595,7 +593,7 @@ ms-<name>/
 
 GitFlow simplificado con tres tipos de rama: `main` (estable, entregable), `develop` (integración) y `refacto/<kebab-case>` o `feature/<kebab-case>` (trabajo en curso). Cada feature se cierra con un **Pull Request** preservando la historia (merge commit, no squash).
 
-Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-branching.pdf`](docs/plan-branching.pdf).
+Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/referencias/plan-branching.pdf`](docs/referencias/plan-branching.pdf).
 
 ---
 
@@ -603,12 +601,10 @@ Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-
 
 | Documento | Propósito |
 |---|---|
-| [`docs/modelo-datos.md`](docs/modelo-datos.md) | ER detallado y máquinas de estado |
-| [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
-| [`docs/login-jwt-sequence.md`](docs/login-jwt-sequence.md) | Secuencia detallada del login y emisión JWT RS256 |
-| [`docs/plan-branching.pdf`](docs/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
-| [`docs/report.pdf`](docs/) | Informe técnico (10 min lectura) |
-| [`docs/presentation.pdf`](docs/) | Presentación ejecutiva |
+| [`docs/referencias/modelo-datos.md`](docs/referencias/modelo-datos.md) | ER detallado y máquinas de estado |
+| [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs/referencias/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
+| [`docs/referencias/login-jwt-sequence.md`](docs/referencias/login-jwt-sequence.md) | Secuencia detallada del login y emisión JWT RS256 |
+| [`docs/referencias/plan-branching.pdf`](docs/referencias/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
 
 ---
 
