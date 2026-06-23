@@ -40,7 +40,7 @@
 
 ## 1. Resumen ejecutivo
 
-SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **orders**, **inventory** y **shipments** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Tailwind) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress local) / **ingress-nginx** (k8s), agregando rate limiting, JWT RS256 validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
+SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **orders**, **inventory** y **shipments** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Tailwind) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress en Docker Compose y Kubernetes), agregando rate limiting, JWT RS256 validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
 
 El proyecto demuestra **5 patrones arquitectónicos** (Microservicios, DB per Service, API Gateway, Ingress separado, BFF) y **más de 10 patrones de diseño** (Repository, Service Layer, DTO, State Machine, Optimistic Locking, Saga simplificada, Composite Service, Aggregate Root, Circuit-Breaker-lite, RFC 7807 Problem Detail).
 
@@ -169,7 +169,7 @@ sequenceDiagram
 
 | Capa | Componente | Responsabilidad | Stack |
 |---|---|---|---|
-| Edge | **Traefik** (compose) / **ingress-nginx** (k8s) | Ingress: routing por host, TLS termination, middlewares de seguridad | Traefik v3.5 / nginx-ingress |
+| Edge | **Traefik** (compose y k8s) | Ingress: routing por host, TLS termination, middlewares de seguridad | Traefik v3.5 (compose) / v3.7 (k8s) |
 | Gateway | **KrakenD** | API Gateway: routing `/api/*`, rate limiting, JWT validation, CORS | KrakenD v2.9 |
 | Presentación | **Frontend** | SPA del operador logístico (5 pantallas) | React 19, Vite 6, TypeScript 5.8, Tailwind CSS 4, motion/react, lucide-react |
 | Adaptación | **BFF** | Orquestación de MS para el frontend (saga checkout, dashboard agregado, proxy CRUD) | Node.js 20, Express 4, http-proxy-middleware, zod |
@@ -385,7 +385,7 @@ stateDiagram-v2
 | **Microservicios** | 5 MS Spring Boot independientes | Despliegue y evolución por dominio, sin acoplamiento de releases |
 | **Database per Service** | `db-order`, `db-inventory`, `db-shipping`, `db-user`, `db-auth` aisladas | Cada equipo evoluciona su schema sin coordinar |
 | **API Gateway** | KrakenD v2.9 | Cross-cutting: rate limiting, JWT validation, CORS, sin contaminar los MS |
-| **Ingress separado** | Traefik v3.5 (compose) / nginx-ingress (k8s) | TLS/routing por host (edge) separado de policy de API |
+| **Ingress separado** | Traefik (compose y k8s) | TLS/routing por host (edge) separado de policy de API |
 | **Backend For Frontend** | Node.js + Express | Endpoint óptimo por pantalla, agregación, orquestación |
 
 ### 6.2 De diseño (selección)
@@ -413,7 +413,7 @@ Análisis completo en [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs
 | Frontend | React 19, Vite 6, TypeScript 5.8, Tailwind CSS 4, motion/react 12, lucide-react |
 | BFF | Node.js 20, Express 4, http-proxy-middleware, zod, morgan, swagger-ui-express |
 | Gateway | KrakenD v2.9 (declarativo via `krakend.json`) |
-| Ingress | Traefik v3.5 (Docker Compose y Kubernetes) / nginx-ingress (alternativa k8s) |
+| Ingress | Traefik (Docker Compose y Kubernetes) — CRDs IngressRoute + Middleware en k8s |
 | MS Spring (4 servicios) | Spring Boot 4.0.6, Java 25, Spring Web MVC, Spring Data JPA, Hibernate, Flyway, Bean Validation, Lombok, Springdoc OpenAPI |
 | ms-auth | Spring Boot 3.5.0, Spring Security, OAuth2 Resource Server, Nimbus JOSE+JWT |
 | DB | PostgreSQL 16-alpine |
@@ -479,7 +479,7 @@ kubectl apply -k infra/k8s
 kubectl -n smartlogix get pods   # 13 pods Running
 ```
 
-> El ingress en k8s usa **Traefik** ([`infra/k8s/ingress-traefik.yaml`](infra/k8s/ingress-traefik.yaml)) con los mismos middlewares que el stack compose (secure-headers, rate-limit, cors-api); la alternativa nginx queda comentada en el `kustomization.yaml`.
+> El ingress en k8s usa **Traefik** ([`infra/k8s/ingress-traefik.yaml`](infra/k8s/ingress-traefik.yaml)) con los mismos middlewares que el stack compose (secure-headers, rate-limit, cors-api). El controller se instala con [`infra/k8s/traefik-values.yaml`](infra/k8s/traefik-values.yaml).
 
 ### 8.3 Documentación interactiva (Swagger / OpenAPI)
 
