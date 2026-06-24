@@ -1,0 +1,33 @@
+# Values para instalar el Ingress Controller Traefik en el cluster.
+#
+#   helm repo add traefik https://traefik.github.io/charts
+#   helm install traefik traefik/traefik -n traefik --create-namespace \
+#     -f infra/k8s/traefik-values.yaml
+#
+# Provee los CRDs traefik.io/v1alpha1 (IngressRoute + Middleware) y el
+# IngressClass 'traefik' que usa infra/k8s/ingress-traefik.yaml.
+# El entryPoint 'web' (:80) publica el Service como LoadBalancer, que
+# Docker Desktop mapea a 80/443 del host.
+---
+# Proveedores: solo CRD (IngressRoute/Middleware). Desactivamos el provider
+# de Ingress clasico para no competir con recursos de otros controllers.
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: false
+
+# IngressClass 'traefik' por defecto del cluster.
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+
+# Service LoadBalancer: Docker Desktop publica los puertos en el host.
+# El chart expone web->80 y websecure->443 a nivel de Service por defecto.
+service:
+  type: LoadBalancer
+
+# Dashboard de Traefik accesible solo por port-forward (no expuesto al borde).
+ingressRoute:
+  dashboard:
+    enabled: false
