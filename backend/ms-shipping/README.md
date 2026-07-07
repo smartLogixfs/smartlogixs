@@ -88,7 +88,7 @@ erDiagram
 
 Los valores de `ShipmentState` se mantienen en español (`CREADO`, `EN_RUTA`, etc.) porque son `CHECK` constraints en SQL.
 
-Detalle ER completo en [`docs/modelo-datos.md`](../../docs/modelo-datos.md).
+Detalle ER completo en [`docs/referencias/modelo-datos.md`](../../docs/referencias/modelo-datos.md).
 
 ## 3. Máquina de estados
 

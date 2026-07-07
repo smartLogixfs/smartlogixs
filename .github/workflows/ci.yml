@@ -1,0 +1,142 @@
+name: CI
+
+# Pipeline de integración continua de SmartLogix (EFT).
+# Construye y prueba todos los componentes del monorepo:
+#   - 5 microservicios Spring Boot (Java 25 + Gradle) con cobertura JaCoCo
+#   - BFF (Node 20 + TypeScript): typecheck
+#   - Frontend (React 19 + Vite): lint + build
+#   - API Gateway (KrakenD): validación de la configuración
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# Cancela ejecuciones anteriores en curso del mismo ref (ahorra minutos de runner).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Microservicios Spring Boot: test unitario + reporte de cobertura JaCoCo
+  # Los tests son unitarios (Mockito), no requieren base de datos.
+  # ---------------------------------------------------------------------------
+  microservices:
+    name: MS · ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ms-auth, ms-inventory, ms-order, ms-shipping, ms-user]
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Test + cobertura JaCoCo
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test jacocoTestReport --no-daemon --console=plain
+
+      - name: Subir reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/build/reports/jacoco/test/jacocoTestReport.xml
+          if-no-files-found: warn
+
+      - name: Subir resultados de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/build/test-results/test/*.xml
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # BFF (Backend For Frontend): chequeo de tipos TypeScript
+  # ---------------------------------------------------------------------------
+  bff:
+    name: BFF · typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/bff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/bff/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+
+  # ---------------------------------------------------------------------------
+  # Frontend (React 19 + Vite): lint (tsc --noEmit) + build de producción
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend · lint + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (tsc --noEmit)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # API Gateway (KrakenD): validación de la configuración krakend.json
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    name: API Gateway · krakend check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validar krakend.json
+        run: |
+          docker run --rm -v "${{ github.workspace }}/backend/api-gateway:/etc/krakend" \
+            devopsfaith/krakend:2 check -c /etc/krakend/krakend.json

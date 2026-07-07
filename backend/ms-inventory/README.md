@@ -101,7 +101,7 @@ erDiagram
 - `cant_reservada <= cantidad`
 - Único por `(id_producto, id_bodega)`
 
-Detalle ER completo en [`docs/modelo-datos.md`](../../docs/modelo-datos.md).
+Detalle ER completo en [`docs/referencias/modelo-datos.md`](../../docs/referencias/modelo-datos.md).
 
 ## 3. Operaciones sobre stock
 

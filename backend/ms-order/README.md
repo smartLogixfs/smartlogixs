@@ -95,7 +95,7 @@ erDiagram
 
 Los valores de enum (`PENDIENTE`, `APROBADO`, etc.) se mantienen en español porque son `CHECK` constraints en SQL.
 
-Detalle ER completo en [`docs/modelo-datos.md`](../../docs/modelo-datos.md).
+Detalle ER completo en [`docs/referencias/modelo-datos.md`](../../docs/referencias/modelo-datos.md).
 
 ## 3. Máquina de estados
 

@@ -334,7 +334,7 @@ erDiagram
     }
 ```
 
-Detalle completo en [`docs/modelo-datos.md`](docs/modelo-datos.md).
+Detalle completo en [`docs/referencias/modelo-datos.md`](docs/referencias/modelo-datos.md).
 
 ### 5.1 Máquinas de estado
 
@@ -402,7 +402,7 @@ stateDiagram-v2
 - **Schema-first migrations** (Flyway autoritativo, Hibernate en `ddl-auto=validate`)
 - **JWT RS256 con JWKS** (ms-auth firma, gateway verifica via endpoint público)
 
-Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf).
+Análisis completo en [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs/referencias/analisis-patrones-arquetipos.pdf).
 
 ---
 
@@ -413,12 +413,14 @@ Análisis completo en [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-pa
 | Frontend | React 19, Vite 6, TypeScript 5.8, Tailwind CSS 4, motion/react 12, lucide-react |
 | BFF | Node.js 20, Express 4, http-proxy-middleware, zod, morgan, swagger-ui-express |
 | Gateway | KrakenD v2.9 (declarativo via `krakend.json`) |
-| Ingress | Traefik v3.5 (Docker Compose) / nginx-ingress (Kubernetes) |
+| Ingress | Traefik v3.5 (Docker Compose y Kubernetes) / nginx-ingress (alternativa k8s) |
 | MS Spring (4 servicios) | Spring Boot 4.0.6, Java 25, Spring Web MVC, Spring Data JPA, Hibernate, Flyway, Bean Validation, Lombok, Springdoc OpenAPI |
 | ms-auth | Spring Boot 3.5.0, Spring Security, OAuth2 Resource Server, Nimbus JOSE+JWT |
 | DB | PostgreSQL 16-alpine |
 | Build | Gradle 9 (Groovy DSL) |
 | Tests | JUnit 5, Mockito, Spring `@WebMvcTest`, JaCoCo |
+| Calidad | SonarQube Community (self-hosted) + cobertura JaCoCo |
+| CI/CD | GitHub Actions (build, test, cobertura, typecheck, lint, krakend check) |
 | Contenedores | Docker + Docker Compose v2, Kubernetes (validado en Docker Desktop k8s) |
 | Docs | Mermaid embebido en Markdown, Springdoc OpenAPI / Swagger UI por MS |
 
@@ -470,12 +472,14 @@ kubectl apply -k infra/k8s/base
 kubectl -n smartlogix create secret generic smartlogix-secret --from-env-file=.env --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n smartlogix create secret generic smartlogix-keys --from-file=private_key.pem --from-file=public_key.pem --dry-run=client -o yaml | kubectl apply -f -
 
-# 4) Apply (workaround por configMapGenerator con path fuera de su dir)
-kubectl kustomize --load-restrictor=LoadRestrictionsNone infra/k8s | kubectl apply -f -
+# 4) Apply completo (ingress Traefik + ConfigMap de krakend ya resueltos)
+kubectl apply -k infra/k8s
 
 # 5) Hosts y verificación
 kubectl -n smartlogix get pods   # 13 pods Running
 ```
+
+> El ingress en k8s usa **Traefik** ([`infra/k8s/ingress-traefik.yaml`](infra/k8s/ingress-traefik.yaml)) con los mismos middlewares que el stack compose (secure-headers, rate-limit, cors-api); la alternativa nginx queda comentada en el `kustomization.yaml`.
 
 ### 8.3 Documentación interactiva (Swagger / OpenAPI)
 
@@ -514,6 +518,27 @@ docker compose down -v                   # bajar + borrar data
 
 ---
 
+### 8.5 CI/CD (GitHub Actions)
+
+El pipeline `.github/workflows/ci.yml` corre en cada push y pull request a `main` y `develop`:
+
+- **Microservicios** (matriz ×5): `test` + `jacocoTestReport` (JDK 25 + Gradle); publica la cobertura como artefacto.
+- **BFF**: `npm ci` + typecheck (`tsc --noEmit`).
+- **Frontend**: `npm ci` + lint + build (Vite).
+- **API Gateway**: validación de `krakend.json` (`krakend check`).
+
+### 8.6 Análisis de calidad (SonarQube)
+
+Stack self-hosted en `infra/sonarqube/` (SonarQube Community + PostgreSQL). Detalle en [`infra/sonarqube/README.md`](infra/sonarqube/README.md).
+
+```bash
+docker compose -f infra/sonarqube/docker-compose.yml up -d   # http://localhost:9000
+cd backend/ms-user
+./gradlew test jacocoTestReport sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=TU_TOKEN
+```
+
+Cobertura de línea actual (todos sobre el 60% exigido): ms-auth 69.5%, ms-inventory 92.4%, ms-order 93.0%, ms-shipping 79.5%, ms-user 88.2% — 0 bugs, 0 vulnerabilidades.
+
 ## 9. Estructura del proyecto
 
 ```
@@ -521,14 +546,14 @@ smartlogixs/
 ├── docker-compose.yml                # orquesta el stack completo
 ├── .env.example                      # variables (copiar a .env)
 ├── private_key.pem / public_key.pem  # llaves RSA para JWT (no committear en prod)
+├── .github/workflows/ci.yml          # CI: build + test + cobertura (GitHub Actions)
 ├── infra/
 │   ├── traefik/                      # config Traefik (compose)
-│   └── k8s/                          # manifests k8s (kustomize)
+│   ├── k8s/                          # manifests k8s (kustomize, ingress Traefik)
+│   └── sonarqube/                    # stack SonarQube self-hosted (compose)
 ├── docs/
-│   ├── modelo-datos.md
-│   ├── analisis-patrones-arquetipos.pdf
-│   ├── login-jwt-sequence.md
-│   └── ...
+│   ├── referencias/                 # docs referenciados por los READMEs
+│   └── diagramas/                   # diagramas de arquitectura (PNG)
 ├── frontend/                         # SPA React 19 + TypeScript + Tailwind
 │   ├── src/
 │   │   ├── client/                   # apiClient.ts
@@ -595,7 +620,7 @@ ms-<name>/
 
 GitFlow simplificado con tres tipos de rama: `main` (estable, entregable), `develop` (integración) y `refacto/<kebab-case>` o `feature/<kebab-case>` (trabajo en curso). Cada feature se cierra con un **Pull Request** preservando la historia (merge commit, no squash).
 
-Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-branching.pdf`](docs/plan-branching.pdf).
+Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/referencias/plan-branching.pdf`](docs/referencias/plan-branching.pdf).
 
 ---
 
@@ -603,19 +628,17 @@ Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/plan-
 
 | Documento | Propósito |
 |---|---|
-| [`docs/modelo-datos.md`](docs/modelo-datos.md) | ER detallado y máquinas de estado |
-| [`docs/analisis-patrones-arquetipos.pdf`](docs/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
-| [`docs/login-jwt-sequence.md`](docs/login-jwt-sequence.md) | Secuencia detallada del login y emisión JWT RS256 |
-| [`docs/plan-branching.pdf`](docs/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
-| [`docs/report.pdf`](docs/) | Informe técnico (10 min lectura) |
-| [`docs/presentation.pdf`](docs/) | Presentación ejecutiva |
+| [`docs/referencias/modelo-datos.md`](docs/referencias/modelo-datos.md) | ER detallado y máquinas de estado |
+| [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs/referencias/analisis-patrones-arquetipos.pdf) | Análisis de patrones de diseño y arquitectónicos |
+| [`docs/referencias/login-jwt-sequence.md`](docs/referencias/login-jwt-sequence.md) | Secuencia detallada del login y emisión JWT RS256 |
+| [`docs/referencias/plan-branching.pdf`](docs/referencias/plan-branching.pdf) | Estrategia de branching + evidencia + resolución de conflictos |
 
 ---
 
 ## 13. Próximos pasos
 
 1. **Packages `com.[empresa].[artefacto]`**: la rúbrica pide convención `com.smartlogix.<artifact>`; el monorepo usa `cl.smartlogix.<artifact>`. Renombre pendiente.
-2. **Cobertura de tests ≥60%**: actualmente los MS tienen tests con JaCoCo (mergeados desde `feature/tests-unitarios`); validar que la cobertura efectiva supera el umbral en todos los MS y agregar tests faltantes (especialmente en ms-auth y ms-user).
+2. **Cobertura de tests ≥60% — ✅ logrado**: los 5 MS superan el umbral (línea: ms-auth 69.5%, ms-inventory 92.4%, ms-order 93.0%, ms-shipping 79.5%, ms-user 88.2%), validado con SonarQube y ejecutado automáticamente en CI (ver §8.5 y §8.6).
 3. **Activar HTTPS en producción**: descomentar la sección `certificatesResolvers` en `infra/traefik/traefik.yml` (Let's Encrypt) o agregar TLS al ingress k8s.
 4. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite con `AbortController`).
 5. **Bug del Krakend `{path}`**: el wildcard de gin captura solo 1 segmento, por lo que endpoints multi-segmento como `/api/inventory/stock/low` requieren entrada específica en `krakend.json`.

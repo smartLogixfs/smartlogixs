@@ -29,7 +29,8 @@ infra/k8s/
 │   ├── configmap.yaml          # vars de entorno comunes (URLs internas, DB names)
 │   ├── secret.example.yaml     # template (sin credenciales reales)
 │   └── kustomization.yaml
-├── ingress.yaml                # ingress-nginx con path /api → gateway, / → frontend
+├── ingress-traefik.yaml        # ingress Traefik (por defecto): IngressRoute + Middlewares
+├── ingress.yaml                # ingress-nginx (alternativa)
 ├── kustomization.yaml          # orquestador raíz con bloque images: (newTag por servicio)
 └── README.md
 
@@ -40,7 +41,7 @@ backend/
 ├── ms-user/k8s/
 ├── ms-auth/k8s/        # con volume mount para llaves PEM (Secret smartlogix-keys)
 ├── bff/k8s/            # Deployment + Service (sin DB)
-└── api-gateway/k8s/    # Deployment + Service + configMapGenerator desde krakend.json
+└── api-gateway/k8s/    # Deployment + Service (el ConfigMap de krakend.json se genera en backend/api-gateway/)
 
 frontend/k8s/           # Deployment + Service (Nginx con bundle Vite)
 ```
@@ -51,10 +52,12 @@ Cada carpeta `k8s/` por servicio tiene su propio `kustomization.yaml`, por lo qu
 
 - Un cluster k8s funcional (Docker Desktop k8s, Minikube, Kind, k3d, EKS, GKE...).
 - `kubectl` con contexto apuntando al cluster.
-- Un Ingress Controller. Por defecto se usa `ingress-nginx`:
+- Un Ingress Controller. Por defecto se usa **Traefik** (aporta los CRDs IngressRoute/Middleware):
   ```bash
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+  helm repo add traefik https://traefik.github.io/charts
+  helm install traefik traefik/traefik -n traefik --create-namespace
   ```
+  Alternativa nginx: cambiar el recurso `ingress-traefik.yaml` por `ingress.yaml` en `infra/k8s/kustomization.yaml`.
 - Llaves RSA (`private_key.pem` y `public_key.pem`) en el directorio raíz del repo para `ms-auth`.
 
 ## 3. Build de imágenes
@@ -95,10 +98,10 @@ kubectl -n smartlogix create secret generic smartlogix-keys \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # 4) Desplegar TODO via el orquestador raíz
-kubectl kustomize --load-restrictor=LoadRestrictionsNone infra/k8s | kubectl apply -f -
+kubectl apply -k infra/k8s
 ```
 
-> **¿Por qué `--load-restrictor=LoadRestrictionsNone`?** El `configMapGenerator` del api-gateway apunta a `../krakend.json` (un nivel arriba del directorio del kustomization). El security check de kustomize bloquea esto por default; el flag lo desactiva. **No es válido en `kubectl apply -k`**, hay que usar `kubectl kustomize | kubectl apply -f -`.
+> El `configMapGenerator` del krakend.json vive en `backend/api-gateway/kustomization.yaml` (nivel del gateway), donde `krakend.json` es local — por eso `kubectl apply -k infra/k8s` funciona sin flags. Para desplegar solo el gateway: `kubectl apply -k backend/api-gateway`.
 
 ## 5. Despliegue: un solo MS
 
@@ -170,7 +173,7 @@ kubectl delete namespace smartlogix      # también borra los PVC y la data
 
 ### 9.1 ConfigMap del krakend.json
 
-El ConfigMap `krakend-config` se genera automáticamente desde `backend/api-gateway/krakend.json` vía `configMapGenerator` en el kustomization del api-gateway: cualquier cambio al JSON produce un nuevo hash y dispara rolling update del Deployment.
+El ConfigMap `krakend-config` se genera desde `backend/api-gateway/krakend.json` vía `configMapGenerator` en `backend/api-gateway/kustomization.yaml` (a nivel del gateway, no dentro de `k8s/`, para no violar el load-restrictor de kustomize). Cualquier cambio al JSON produce un nuevo hash y dispara rolling update del Deployment.
 
 ### 9.2 Tags de imagen y cache de containerd
 
@@ -190,7 +193,7 @@ Flujo recomendado tras un cambio de código:
 docker compose --env-file .env build <svc>
 docker tag smartlogix-<svc>:latest smartlogix/<svc>:vN
 # actualizar newTag en infra/k8s/kustomization.yaml
-kubectl kustomize --load-restrictor=LoadRestrictionsNone infra/k8s | kubectl apply -f -
+kubectl apply -k infra/k8s
 ```
 
 ### 9.3 Bug Flyway en Spring Boot 4.0
