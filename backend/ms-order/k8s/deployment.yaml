@@ -51,6 +51,12 @@ spec:
                 configMapKeyRef:
                   name: smartlogix-config
                   key: MS_INVENTORY_URL
+            - name: SENTRY_DSN
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_ORDER_DSN
+                  optional: true
           resources:
             requests:
               cpu: 100m

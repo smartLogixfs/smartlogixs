@@ -42,6 +42,7 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE: ${FRONTEND_API_BASE:-http://localhost:8090/api}
+        VITE_GLITCHTIP_DSN: ${VITE_GLITCHTIP_DSN:-}
     container_name: smartlogix-frontend
     restart: unless-stopped
     ports:
@@ -96,6 +97,7 @@ services:
       MS_SHIPPING_URL: http://ms-shipping:8080
       MS_USER_URL: http://ms-user:8080
       MS_AUTH_URL: http://ms-auth:8081
+      BFF_GLITCHTIP_DSN: ${BFF_GLITCHTIP_DSN:-}
     depends_on:
       - ms-inventory
       - ms-order
@@ -125,6 +127,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-inventory:5432/${POSTGRES_INVENTARIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_INVENTARIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_INVENTARIO_PASSWORD}
+      SENTRY_DSN: ${MS_INVENTORY_DSN:-}
     depends_on:
       - db-inventory
     networks:
@@ -140,6 +143,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-order:5432/${POSTGRES_PEDIDO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PEDIDO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PEDIDO_PASSWORD}
+      SENTRY_DSN: ${MS_ORDER_DSN:-}
       MS_INVENTORY_URL: http://ms-inventory:8080
     depends_on:
       - db-order
@@ -156,6 +160,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-shipping:5432/${POSTGRES_ENVIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_ENVIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_ENVIO_PASSWORD}
+      SENTRY_DSN: ${MS_SHIPPING_DSN:-}
     depends_on:
       - db-shipping
     networks:
@@ -171,6 +176,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-user:5432/${POSTGRES_USUARIO_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USUARIO_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_USUARIO_PASSWORD}
+      SENTRY_DSN: ${MS_USER_DSN:-}
     depends_on:
       - db-user
     networks:
@@ -186,6 +192,7 @@ services:
       DB_URL: jdbc:postgresql://db-auth:5432/${POSTGRES_AUTH_DB}
       DB_USERNAME: ${POSTGRES_AUTH_USER}
       DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+      SENTRY_DSN: ${MS_AUTH_DSN:-}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: http://ms-auth:8081
       JWT_PRIVATE_KEY_PATH: /keys/private_key.pem

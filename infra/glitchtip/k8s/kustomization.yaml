@@ -1,0 +1,15 @@
+# Stack GlitchTip para Kubernetes (standalone, namespace propio 'glitchtip').
+# NO forma parte del kustomization raiz de la app; se despliega aparte:
+#
+#   kubectl apply -k infra/glitchtip/k8s
+#
+# Exponer el dashboard en local:
+#   kubectl -n glitchtip port-forward svc/glitchtip-web 8000:8000
+#   # dashboard en http://localhost:8000
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - config.yaml
+  - data.yaml
+  - app.yaml
