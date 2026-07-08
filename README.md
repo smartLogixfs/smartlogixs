@@ -420,6 +420,7 @@ Análisis completo en [`docs/referencias/analisis-patrones-arquetipos.pdf`](docs
 | Build | Gradle 9 (Groovy DSL) |
 | Tests | JUnit 5, Mockito, Spring `@WebMvcTest`, JaCoCo |
 | Calidad | SonarQube Community (self-hosted) + cobertura JaCoCo |
+| Observabilidad | GlitchTip (self-hosted, error-tracking compatible con SDK de Sentry) |
 | CI/CD | GitHub Actions (build, test, cobertura, typecheck, lint, krakend check) |
 | Contenedores | Docker + Docker Compose v2, Kubernetes (validado en Docker Desktop k8s) |
 | Docs | Mermaid embebido en Markdown, Springdoc OpenAPI / Swagger UI por MS |
@@ -539,6 +540,22 @@ cd backend/ms-user
 
 Cobertura de línea actual (todos sobre el 60% exigido): ms-auth 69.5%, ms-inventory 92.4%, ms-order 93.0%, ms-shipping 79.5%, ms-user 88.2% — 0 bugs, 0 vulnerabilidades.
 
+### 8.7 Monitoreo de errores (GlitchTip)
+
+Stack self-hosted en `infra/glitchtip/` (**GlitchTip**, error-tracking open-source compatible con el SDK de **Sentry**) que captura en runtime los errores de todas las capas. Detalle en [`infra/glitchtip/README.md`](infra/glitchtip/README.md).
+
+```bash
+docker compose -f infra/glitchtip/docker-compose.yml up -d   # http://localhost:8000
+```
+
+Tras el primer arranque: crear cuenta → organización → un proyecto por componente → copiar cada DSN al `.env`. Instrumentación por capa (el DSN se lee por env var; vacío = SDK en no-op):
+
+| Capa | SDK | Punto de integración |
+|---|---|---|
+| Frontend (React) | `@sentry/react` | `frontend/src/main.tsx` (init + `ErrorBoundary`) |
+| BFF (Express) | `@sentry/node` | `backend/bff/src/instrument.ts` + `setupExpressErrorHandler` |
+| 5 microservicios | `io.sentry:sentry-logback` | `logback-spring.xml` (appender nivel ERROR) |
+
 ## 9. Estructura del proyecto
 
 ```
@@ -550,7 +567,8 @@ smartlogixs/
 ├── infra/
 │   ├── traefik/                      # config Traefik (compose)
 │   ├── k8s/                          # manifests k8s (kustomize, ingress Traefik)
-│   └── sonarqube/                    # stack SonarQube self-hosted (compose)
+│   ├── sonarqube/                    # stack SonarQube self-hosted (compose)
+│   └── glitchtip/                    # stack GlitchTip self-hosted (compose + k8s)
 ├── docs/
 │   ├── referencias/                 # docs referenciados por los READMEs
 │   └── diagramas/                   # diagramas de arquitectura (PNG)

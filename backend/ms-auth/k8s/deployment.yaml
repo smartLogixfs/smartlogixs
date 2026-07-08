@@ -60,6 +60,12 @@ spec:
               value: /app/keys/private_key.pem
             - name: JWT_PUBLIC_KEY_PATH
               value: /app/keys/public_key.pem
+            - name: SENTRY_DSN
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_AUTH_DSN
+                  optional: true
           volumeMounts:
             - name: keys-volume
               mountPath: /app/keys

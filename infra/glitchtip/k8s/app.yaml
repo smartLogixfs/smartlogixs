@@ -1,0 +1,111 @@
+# Aplicacion GlitchTip: Job de migracion + web + worker.
+# La env comun viene del ConfigMap glitchtip-config y la SECRET_KEY del Secret.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glitchtip-migrate
+  namespace: glitchtip
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: glitchtip/glitchtip:v4.0
+          command: ["./manage.py", "migrate"]
+          envFrom:
+            - configMapRef:
+                name: glitchtip-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-secret
+                  key: SECRET_KEY
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glitchtip-web
+  namespace: glitchtip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: glitchtip-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: glitchtip-web
+    spec:
+      containers:
+        - name: web
+          image: glitchtip/glitchtip:v4.0
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: glitchtip-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-secret
+                  key: SECRET_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: glitchtip-web
+  namespace: glitchtip
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: glitchtip-web
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glitchtip-worker
+  namespace: glitchtip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: glitchtip-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: glitchtip-worker
+    spec:
+      containers:
+        - name: worker
+          image: glitchtip/glitchtip:v4.0
+          command: ["./bin/run-celery-with-beat.sh"]
+          envFrom:
+            - configMapRef:
+                name: glitchtip-config
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-secret
+                  key: SECRET_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

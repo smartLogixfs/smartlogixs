@@ -6,4 +6,6 @@ export const env = {
   MS_USER_URL: process.env.MS_USER_URL || "http://ms-user:8080",
   MS_AUTH_URL: process.env.MS_AUTH_URL || "http://ms-auth:8081",
   HTTP_TIMEOUT_MS: Number(process.env.HTTP_TIMEOUT_MS) || 5000,
+  GLITCHTIP_DSN: process.env.BFF_GLITCHTIP_DSN || "",
+  NODE_ENV: process.env.NODE_ENV || "development",
 };

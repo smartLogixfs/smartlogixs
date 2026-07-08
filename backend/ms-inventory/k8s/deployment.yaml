@@ -46,6 +46,12 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_INVENTARIO_PASSWORD
+            - name: SENTRY_DSN
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_INVENTORY_DSN
+                  optional: true
           resources:
             requests:
               cpu: 100m

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: glitchtip
+  labels:
+    app.kubernetes.io/name: glitchtip
+    app.kubernetes.io/part-of: smartlogix-observability

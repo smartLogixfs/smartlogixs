@@ -27,3 +27,15 @@ data:
 
   # === JWT ===
   JWT_ISSUER: http://ms-auth:8081
+
+  # === GlitchTip (error tracking, DSN por componente) ===
+  # Los DSN de Sentry/GlitchTip son publicos por diseno (identifican el proyecto de
+  # ingesta, no dan acceso a los datos), por eso van en ConfigMap y no en Secret.
+  # Rellenar tras crear los proyectos en el dashboard de GlitchTip. Vacio = SDK no-op.
+  # (En los deployments se leen con optional: true, asi que pueden quedar vacios.)
+  BFF_GLITCHTIP_DSN: ""
+  MS_AUTH_DSN: ""
+  MS_USER_DSN: ""
+  MS_ORDER_DSN: ""
+  MS_INVENTORY_DSN: ""
+  MS_SHIPPING_DSN: ""
