@@ -42,7 +42,7 @@
 
 SmartLogix resuelve la coordinación logística de PYMEs eCommerce gestionando tres dominios desacoplados — **orders**, **inventory** y **shipments** — sobre una arquitectura de microservicios con consistencia eventual. El frontend (React 19 + Tailwind) consume una API optimizada en un **BFF Node.js** que orquesta llamadas a los microservicios Spring Boot 4 y compone respuestas para cada pantalla. **KrakenD** actúa como API Gateway detrás de **Traefik** (Ingress local) / **ingress-nginx** (k8s), agregando rate limiting, JWT RS256 validation y CORS. Cada microservicio usa su propia base **PostgreSQL 16** versionada con Flyway, sin FKs cruzadas.
 
-El proyecto demuestra **5 patrones arquitectónicos** (Microservicios, DB per Service, API Gateway, Ingress separado, BFF) y **más de 10 patrones de diseño** (Repository, Service Layer, DTO, State Machine, Optimistic Locking, Saga simplificada, Composite Service, Aggregate Root, Circuit-Breaker-lite, RFC 7807 Problem Detail).
+El proyecto demuestra **5 patrones arquitectónicos** (Microservicios, DB per Service, API Gateway, Ingress separado, BFF) y **más de 10 patrones de diseño** (Repository, Service Layer, Factory Method, DTO, State Machine, Optimistic Locking, Saga simplificada, Composite Service, Aggregate Root, Circuit Breaker, RFC 7807 Problem Detail).
 
 **Estado de la API pública**: contrato 100% en inglés (paths URL, campos JSON, scopes JWT). Los nombres internos de tablas y columnas DB se mantienen en español, mapeados con `@Column(name="...")` en cada entity para preservar el schema sin migraciones de renombre. Detalle en [§10](#10-convenciones-de-naming).
 
@@ -392,12 +392,13 @@ stateDiagram-v2
 
 - **Repository Pattern** (Spring Data JPA repositories)
 - **Service Layer** (interfaz + impl, transaccional)
+- **Factory Method** (ms-order: `OrderFactory` + `StandardOrderFactory` / `ExpressOrderFactory` + `OrderFactoryProvider`; la creación del pedido varía por `OrderType`)
 - **DTO** (records Java, inmutables, validables)
 - **State Machine** (`Order` + `Shipment` con transiciones explícitas)
 - **Optimistic Locking** (`@Version` en `Stock`)
 - **Saga simplificada / Composite Service** (checkout en BFF con compensaciones)
 - **Aggregate Root** (`Order` → items + history; `Shipment` → tracking; `Stock` → movements)
-- **Circuit-Breaker-lite** (BFF: `AbortController` + tolerancia parcial en agregaciones)
+- **Circuit Breaker** (BFF: `clients/circuitBreaker.ts` con estados CLOSED/OPEN/HALF_OPEN y un breaker por servicio; `AbortController` + tolerancia parcial en agregaciones)
 - **RFC 7807 ProblemDetail** (formato unificado de errores en `GlobalExceptionHandler` de los 5 MS)
 - **Schema-first migrations** (Flyway autoritativo, Hibernate en `ddl-auto=validate`)
 - **JWT RS256 con JWKS** (ms-auth firma, gateway verifica via endpoint público)
@@ -640,6 +641,6 @@ Documento completo (estrategia, evidencia, gestión de conflictos): [`docs/refer
 1. **Packages `com.[empresa].[artefacto]`**: la rúbrica pide convención `com.smartlogix.<artifact>`; el monorepo usa `cl.smartlogix.<artifact>`. Renombre pendiente.
 2. **Cobertura de tests ≥60% — ✅ logrado**: los 5 MS superan el umbral (línea: ms-auth 69.5%, ms-inventory 92.4%, ms-order 93.0%, ms-shipping 79.5%, ms-user 88.2%), validado con SonarQube y ejecutado automáticamente en CI (ver §8.5 y §8.6).
 3. **Activar HTTPS en producción**: descomentar la sección `certificatesResolvers` en `infra/traefik/traefik.yml` (Let's Encrypt) o agregar TLS al ingress k8s.
-4. **Circuit Breaker robusto**: agregar Resilience4j a los MS (hoy el BFF tiene el equivalente lite con `AbortController`).
+4. **Circuit Breaker en los MS**: el BFF ya implementa un Circuit Breaker real (CLOSED/OPEN/HALF_OPEN en `clients/circuitBreaker.ts`); queda como mejora llevar el patrón a las llamadas entre MS con Resilience4j.
 5. **Bug del Krakend `{path}`**: el wildcard de gin captura solo 1 segmento, por lo que endpoints multi-segmento como `/api/inventory/stock/low` requieren entrada específica en `krakend.json`.
 6. **Spring Boot 4 + Flyway**: con `ddl-auto=validate` Flyway no corre automáticamente antes de Hibernate en Boot 4 (sí funciona en ms-auth que usa 3.5). Workaround: aplicar migrations vía `psql` manualmente, o downgrade a 3.5.
