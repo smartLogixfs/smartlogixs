@@ -15,7 +15,7 @@
 | Librerías clave | http-proxy-middleware, zod, morgan, swagger-ui-express, dotenv |
 | Build | `tsc` (compilación a `dist/`) |
 | Tests | Vitest *(pendiente — el dominio del BFF es orquestación, los tests viven en los MS)* |
-| Patrones | Backend For Frontend, Composite Service, Saga simplificada, Circuit-Breaker-lite, Schema Validation (zod), RFC 7807 ProblemDetail |
+| Patrones | Backend For Frontend, Composite Service, Saga simplificada, **Circuit Breaker** (CLOSED/OPEN/HALF_OPEN), Schema Validation (zod), RFC 7807 ProblemDetail |
 
 ---
 
@@ -89,6 +89,7 @@ flowchart TB
 
     subgraph Clients["clients/"]
         HC["httpClient<br/>(fetch + AbortController<br/>+ UpstreamError)"]
+        CB["circuitBreaker<br/>(CLOSED/OPEN/HALF_OPEN<br/>por servicio)"]
         O[order client]
         I[inventory client]
         S[shipping client]
@@ -102,6 +103,7 @@ flowchart TB
     Routes --> Schemas
     Services --> Clients
     O & I & S --> HC
+    HC --> CB
 ```
 
 ## 4. API
@@ -190,6 +192,7 @@ Centralizado en `middleware/errorHandler.ts`. Convierte cualquier excepción en 
 | `ZodError` | 400 | `{ title, detail, errors: { campo: mensaje } }` |
 | `UpstreamError` timeout | 504 | `{ detail: "<service> timeout (5000ms)" }` |
 | `UpstreamError` red | 502 | `{ detail: "<service> inalcanzable: ..." }` |
+| `UpstreamError` circuito abierto | 503 | `{ detail: "<service> no disponible (circuito abierto)" }` |
 | `UpstreamError` status upstream | igual al upstream | propaga `body` del MS |
 | `Error` genérico | 500 | `{ detail: "Internal Server Error" }` (log completo en stderr) |
 
@@ -204,6 +207,8 @@ Centralizado en `middleware/errorHandler.ts`. Convierte cualquier excepción en 
 | `MS_USER_URL` | `http://ms-user:8080` | URL base del MS de user |
 | `MS_AUTH_URL` | `http://ms-auth:8081` | URL base del MS de auth |
 | `HTTP_TIMEOUT_MS` | `5000` | Timeout (AbortController) para cada llamada a MS |
+| `CB_FAILURE_THRESHOLD` | `5` | Fallos consecutivos (5xx/red/timeout) que abren el circuito |
+| `CB_RESET_TIMEOUT_MS` | `15000` | Ventana en estado OPEN antes de pasar a HALF_OPEN |
 
 ## 8. Cómo ejecutar
 
@@ -252,7 +257,7 @@ La spec se mantiene en `src/openapi.yaml` y se sirve mediante el router `routes/
 - **BFF (Backend For Frontend)** — API tallada a la medida de las pantallas del operador
 - **Composite Service** — `dashboardService` y `orderComposerService` agregan varios MS en paralelo con `Promise.all`
 - **Saga simplificada** — `checkoutService` con compensaciones best-effort
-- **Circuit-Breaker-lite** — cada llamada va envuelta en `AbortController` con timeout; las agregaciones toleran fallos parciales con `.catch()`
+- **Circuit Breaker** — `clients/circuitBreaker.ts` con un breaker por servicio destino y estados **CLOSED → OPEN → HALF_OPEN**. Tras `CB_FAILURE_THRESHOLD` fallos (5xx/red/timeout) abre el circuito y falla rápido con 503 durante `CB_RESET_TIMEOUT_MS`, sin golpear al servicio caído; luego prueba en HALF_OPEN antes de cerrar. Un 4xx no abre el circuito (el servicio está sano). Cada llamada sigue envuelta en `AbortController` con timeout y las agregaciones toleran fallos parciales con `.catch()`
 - **Schema Validation (zod)** — entrada validada antes de tocar los MS
 - **RFC 7807 ProblemDetail** — formato unificado de errores entre BFF y MS
 - **Proxy with body restream** — `restreamBody` re-serializa `req.body` después de `express.json()` para que `http-proxy-middleware` no quede esperando un stream vacío

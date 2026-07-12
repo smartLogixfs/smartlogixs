@@ -16,7 +16,7 @@
 | Persistencia | PostgreSQL 16 (DB-per-service, sin FKs cross-MS) |
 | Build | Gradle 9 |
 | Tests | JUnit 5, Mockito, Spring `@WebMvcTest`, JaCoCo |
-| Patrones | Repository, Service Layer, DTO (records), Aggregate Root, State Machine declarativa, Audit Log, RFC 7807 ProblemDetail |
+| Patrones | Repository, Service Layer, **Factory Method** (creación de pedidos por tipo), DTO (records), Aggregate Root, State Machine declarativa, Audit Log, RFC 7807 ProblemDetail |
 | Package raíz | `cl.smartlogix.order` |
 
 ---
@@ -39,7 +39,9 @@
 
 `ms-order` es responsable de:
 
-- Crear pedidos validando ítems y calculando totales con IVA 19 %.
+- Crear pedidos validando ítems y calculando totales con IVA 19 %. La creación se
+  resuelve con **Factory Method** según el `type` del pedido: `ESTANDAR` (sin
+  recargo) o `EXPRESS` (recargo del 5 % por prioridad de despacho).
 - Mantener la máquina de estados (`PENDIENTE → APROBADO → ... → ENTREGADO`) con transiciones validadas.
 - Persistir cada cambio de estado en `pedido_historial` (audit log inmutable).
 - Generar códigos `PED-YYYYMMDD-XXXXXX` únicos por pedido.
@@ -145,6 +147,18 @@ flowchart TB
     Svc -.->|si transición ilegal| Adv
     Adv -.->|ProblemDetail 409| Ctrl
 ```
+
+**Factory Method en la creación.** `OrderServiceImpl.create()` no arma el pedido
+directamente: delega en un `OrderFactory` seleccionado por `OrderFactoryProvider`
+según el `OrderType`. La clase abstracta `OrderFactory` define el *factory method*
+`instantiate(...)` y centraliza el armado del agregado (ítems, IVA, historial); cada
+creador concreto redefine lo propio de su tipo:
+
+- `StandardOrderFactory` — pedido `ESTANDAR`, sin recargo.
+- `ExpressOrderFactory` — pedido `EXPRESS`, con recargo del 5 % sobre el subtotal.
+
+Agregar un nuevo tipo de pedido solo requiere un nuevo `@Component` creador, sin
+tocar el servicio (principio Open/Closed).
 
 ## 5. API REST
 
@@ -269,7 +283,12 @@ src/main/java/cl/smartlogix/order/
 │   └── GlobalExceptionHandler.java
 ├── service/
 │   ├── OrderService.java             # interfaz
-│   └── OrderServiceImpl.java         # state machine, cálculo IVA, generación de código
+│   └── OrderServiceImpl.java         # state machine, generación de código, delega creación al factory
+├── factory/                          # Factory Method: creación de pedidos por tipo
+│   ├── OrderFactory.java             # abstracto: factory method + armado del agregado (IVA, historial)
+│   ├── StandardOrderFactory.java     # pedido ESTANDAR (sin recargo)
+│   ├── ExpressOrderFactory.java      # pedido EXPRESS (recargo 5%)
+│   └── OrderFactoryProvider.java     # selecciona el creador por OrderType
 ├── repository/
 │   ├── OrderRepository
 │   ├── OrderItemRepository
@@ -291,6 +310,7 @@ src/main/resources/
 ## 9. Patrones aplicados
 
 - **Repository Pattern** — Spring Data JPA repositories
+- **Factory Method** — `OrderFactory` abstracto + `StandardOrderFactory` / `ExpressOrderFactory` + `OrderFactoryProvider`; cada tipo de pedido decide cómo se instancia y qué recargo aplica
 - **Service Layer** — interfaz + impl, anotaciones `@Transactional`
 - **DTO** — records inmutables con factory `from(Entity)`
 - **State Machine declarativa** — transiciones como datos (`Map<OrderStatus, Set<OrderStatus>>`)
