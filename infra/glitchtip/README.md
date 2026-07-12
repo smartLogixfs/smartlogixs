@@ -55,17 +55,36 @@ docker compose up -d --build
   `VITE_GLITCHTIP_DSN` hay que reconstruir su imagen (`--build`).
 - **BFF** y **microservicios** leen el DSN en runtime desde el entorno.
 
-## 4. Probar que llegan los eventos
+## 4. Probar que llegan los eventos (endpoints de demo)
 
-Provoca un error en cada capa y verifica que aparece en el proyecto respectivo
-del dashboard:
+Cada capa expone endpoints `/demo` para provocar eventos en vivo durante la
+presentación (Letra G). Dispáralos y verifica que aparecen en el proyecto
+respectivo del dashboard. En dev los microservicios se publican en 8081-8085
+(ver `docker-compose.override.yml`); el BFF en :3000.
 
-- **Microservicio**: llama un endpoint que lance una excepción (cualquier 500).
-  El appender `sentry-logback` envía todo log nivel `ERROR`.
-- **BFF**: pega a una ruta cuyo MS destino esté caído → el error se captura vía
-  `Sentry.setupExpressErrorHandler`.
-- **Frontend**: dispara un error en un handler de UI → lo captura el
-  `Sentry.ErrorBoundary`.
+| Capa | Provocar error (500 / excepción) | Provocar log de nivel ERROR |
+|------|----------------------------------|-----------------------------|
+| ms-auth      | `GET http://localhost:8081/demo/error` | `GET http://localhost:8081/demo/log` |
+| ms-user      | `GET http://localhost:8082/demo/error` | `GET http://localhost:8082/demo/log` |
+| ms-order     | `GET http://localhost:8083/demo/error` | `GET http://localhost:8083/demo/log` |
+| ms-inventory | `GET http://localhost:8084/demo/error` | `GET http://localhost:8084/demo/log` |
+| ms-shipping  | `GET http://localhost:8085/demo/error` | `GET http://localhost:8085/demo/log` |
+| BFF          | `GET http://localhost:3000/demo/error` | `GET http://localhost:3000/demo/log` |
+| Frontend     | Botón **"GlitchTip: probar error"** (abajo a la derecha) | — |
+
+Cómo se captura en cada capa:
+
+- **Microservicios**: `/demo/error` lanza una excepción que el
+  `GlobalExceptionHandler` (catch-all `Exception`) registra con `log.error(...)`;
+  `/demo/log` emite un `log.error(...)` directo. En ambos casos el appender
+  `sentry-logback` (nivel `ERROR`) envía el evento a GlitchTip.
+- **BFF**: `/demo/error` lanza una excepción capturada por
+  `Sentry.setupExpressErrorHandler`; `/demo/log` usa `Sentry.captureMessage(..., "error")`.
+- **Frontend**: el botón dispara un error de render que captura el
+  `Sentry.ErrorBoundary` de `main.tsx`.
+
+> Todos los `/demo` son sólo para demostración. Si el DSN del componente está
+> vacío, el SDK queda en no-op y el endpoint responde igual (no se envía nada).
 
 ## 5. Apagar el stack
 
