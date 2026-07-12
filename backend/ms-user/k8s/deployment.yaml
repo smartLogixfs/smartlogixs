@@ -46,6 +46,12 @@ spec:
                 secretKeyRef:
                   name: smartlogix-secret
                   key: POSTGRES_USUARIO_PASSWORD
+            - name: SENTRY_DSN
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: MS_USER_DSN
+                  optional: true
           resources:
             requests:
               cpu: 100m
