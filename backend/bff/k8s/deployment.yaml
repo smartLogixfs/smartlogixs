@@ -54,6 +54,12 @@ spec:
                 configMapKeyRef:
                   name: smartlogix-config
                   key: MS_AUTH_URL
+            - name: BFF_GLITCHTIP_DSN
+              valueFrom:
+                configMapKeyRef:
+                  name: smartlogix-config
+                  key: BFF_GLITCHTIP_DSN
+                  optional: true
           resources:
             requests:
               cpu: 50m

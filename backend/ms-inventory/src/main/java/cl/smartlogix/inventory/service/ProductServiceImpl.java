@@ -20,6 +20,9 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository repository;
 
+    /**
+     * Crea un nuevo producto en el inventario.
+     */
     @Override
     public ProductDto create(CreateProductRequest req) {
         if (repository.existsBySku(req.sku())) {

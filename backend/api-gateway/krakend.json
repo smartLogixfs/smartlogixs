@@ -345,6 +345,94 @@
       ]
     },
     {
+      "endpoint": "/api/inventory/{path}/{subpath}",
+      "method": "GET",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["read:inventory"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/inventory/{path}/{subpath}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/inventory/{path}/{subpath}",
+      "method": "POST",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:inventory"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/inventory/{path}/{subpath}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/inventory/{path}/{subpath}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:inventory"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/inventory/{path}/{subpath}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/shipments/{path}/{subpath}",
+      "method": "PATCH",
+      "input_headers": ["Authorization", "Content-Type"],
+      "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://ms-auth:8081/.well-known/jwks.json",
+          "disable_jwk_security": true,
+          "roles_key": "scope",
+          "roles": ["write:shipments"]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/shipments/{path}/{subpath}",
+          "encoding": "no-op",
+          "host": ["http://bff:3000"]
+        }
+      ]
+    },
+    {
       "endpoint": "/api/orders/{path}",
       "method": "PATCH",
       "input_headers": ["Authorization", "Content-Type"],

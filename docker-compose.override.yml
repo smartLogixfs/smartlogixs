@@ -1,0 +1,52 @@
+# Override SOLO para desarrollo local: expone los puertos de cada microservicio
+# al host para poder abrir sus Swagger UI en el navegador.
+#
+# Los MS corren solo en la red `internal` (internal: true), que no tiene ruta al
+# host -> Docker no puede publicar sus puertos. Aquí los agregamos también a la
+# red `web` y mapeamos un puerto distinto a cada uno.
+#
+# Compose lo fusiona automáticamente con docker-compose.yml.
+# NO usar en producción (rompe el aislamiento de la red internal).
+#
+# Levantar:   docker compose up -d
+# Bajar:      docker compose down
+
+services:
+  bff:
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  ms-auth:
+    networks:
+      - internal
+      - web
+    ports:
+      - "127.0.0.1:8081:8081"
+
+  ms-user:
+    networks:
+      - internal
+      - web
+    ports:
+      - "127.0.0.1:8082:8080"
+
+  ms-order:
+    networks:
+      - internal
+      - web
+    ports:
+      - "127.0.0.1:8083:8080"
+
+  ms-inventory:
+    networks:
+      - internal
+      - web
+    ports:
+      - "127.0.0.1:8084:8080"
+
+  ms-shipping:
+    networks:
+      - internal
+      - web
+    ports:
+      - "127.0.0.1:8085:8080"

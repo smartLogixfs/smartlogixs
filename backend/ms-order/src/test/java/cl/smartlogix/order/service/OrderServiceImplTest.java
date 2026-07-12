@@ -3,6 +3,9 @@ package cl.smartlogix.order.service;
 import cl.smartlogix.order.dto.CreateOrderRequest;
 import cl.smartlogix.order.dto.OrderDto;
 import cl.smartlogix.order.dto.UpdateOrderState;
+import cl.smartlogix.order.factory.ExpressOrderFactory;
+import cl.smartlogix.order.factory.OrderFactoryProvider;
+import cl.smartlogix.order.factory.StandardOrderFactory;
 import cl.smartlogix.order.model.Order;
 import cl.smartlogix.order.model.OrderStatus;
 import cl.smartlogix.order.model.OrderType;
@@ -11,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,13 +31,17 @@ class OrderServiceImplTest {
     @Mock
     private OrderRepository repository;
 
-    @InjectMocks
     private OrderServiceImpl service;
 
     private CreateOrderRequest request;
 
     @BeforeEach
     void setUp() {
+
+        // Provider real con los dos creadores concretos (Factory Method).
+        OrderFactoryProvider factoryProvider = new OrderFactoryProvider(
+                List.of(new StandardOrderFactory(), new ExpressOrderFactory()));
+        service = new OrderServiceImpl(repository, factoryProvider);
 
         CreateOrderRequest.ItemRequest item =
                 new CreateOrderRequest.ItemRequest(
@@ -95,6 +101,34 @@ class OrderServiceImplTest {
                 new BigDecimal("2380.00"),
                 saved.getTotal()
         );
+    }
+
+    @Test
+    void createExpressShouldApplySurcharge() {
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+
+        when(repository.save(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateOrderRequest expressRequest = new CreateOrderRequest(
+                OrderType.EXPRESS,
+                "CLIENTE-1",
+                "SHOPIFY",
+                List.of(new CreateOrderRequest.ItemRequest(
+                        1L, "SKU-001", 2, new BigDecimal("1000")))
+        );
+
+        service.create(expressRequest);
+
+        verify(repository).save(captor.capture());
+        Order saved = captor.getValue();
+
+        // subtotal 2000 + recargo 5% (100) = base 2100 -> IVA 399 -> total 2499
+        assertEquals(OrderType.EXPRESS, saved.getType());
+        assertEquals(new BigDecimal("2000.00"), saved.getSubtotal());
+        assertEquals(new BigDecimal("399.00"), saved.getTax());
+        assertEquals(new BigDecimal("2499.00"), saved.getTotal());
     }
 
     @Test

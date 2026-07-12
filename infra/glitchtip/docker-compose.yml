@@ -1,0 +1,105 @@
+name: smartlogix-glitchtip
+
+# Stack local de GlitchTip (error-tracking open-source, compatible con el SDK de
+# Sentry) para el monitoreo de errores en runtime de SmartLogix (EFT).
+# Independiente del docker-compose.yml de la aplicacion: levantalo solo cuando
+# quieras capturar/observar errores.
+#
+#   docker compose -f infra/glitchtip/docker-compose.yml up -d
+#   # dashboard en http://localhost:8000
+#
+# Tras el primer arranque: crea una cuenta, una organizacion y un proyecto por
+# componente, y copia cada DSN a tu .env. Ver infra/glitchtip/README.md.
+
+# Configuracion comun a los 3 contenedores de GlitchTip (web, worker, migrate).
+x-glitchtip-env: &glitchtip-env
+  DATABASE_URL: postgres://glitchtip:glitchtip@db:5432/glitchtip
+  REDIS_URL: redis://redis:6379/0
+  SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-in-local-dev-please}
+  PORT: "8000"
+  GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8000}
+  # Registro abierto para poder crear la primera cuenta desde la UI.
+  ENABLE_OPEN_USER_REGISTRATION: "true"
+  # Sin servidor SMTP en local: los correos (invitaciones, etc.) van al log.
+  EMAIL_URL: consolemail://
+  DEFAULT_FROM_EMAIL: glitchtip@smartlogix.localhost
+  CELERY_WORKER_AUTOSCALE: "1,3"
+
+services:
+  # --- Base de datos propia de GlitchTip -----------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: smartlogix-glitchtip-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: glitchtip
+    volumes:
+      - glitchtip-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Broker / cache (Celery) ---------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: smartlogix-glitchtip-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Migraciones (job de arranque, corre y termina) ----------------------
+  migrate:
+    image: glitchtip/glitchtip:v4.0
+    container_name: smartlogix-glitchtip-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ./manage.py migrate
+    environment: *glitchtip-env
+    restart: "no"
+
+  # --- Servidor web / API / dashboard --------------------------------------
+  web:
+    image: glitchtip/glitchtip:v4.0
+    container_name: smartlogix-glitchtip-web
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    environment: *glitchtip-env
+    volumes:
+      - glitchtip-uploads:/code/uploads
+    restart: unless-stopped
+
+  # --- Worker de tareas asincronas (procesa e ingesta los eventos) ---------
+  worker:
+    image: glitchtip/glitchtip:v4.0
+    container_name: smartlogix-glitchtip-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command: ./bin/run-celery-with-beat.sh
+    environment: *glitchtip-env
+    volumes:
+      - glitchtip-uploads:/code/uploads
+    restart: unless-stopped
+
+volumes:
+  glitchtip-pg-data:
+  glitchtip-uploads:

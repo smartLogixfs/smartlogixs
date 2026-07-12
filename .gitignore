@@ -61,3 +61,4 @@ infra/k8s/base/secret.yaml
 *.swp
 *.bak
 *.tmp
+./claude

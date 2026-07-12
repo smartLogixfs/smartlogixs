@@ -3,6 +3,8 @@ package cl.smartlogix.order.service;
 import cl.smartlogix.order.dto.UpdateOrderState;
 import cl.smartlogix.order.dto.CreateOrderRequest;
 import cl.smartlogix.order.dto.OrderDto;
+import cl.smartlogix.order.factory.OrderFactory;
+import cl.smartlogix.order.factory.OrderFactoryProvider;
 import cl.smartlogix.order.model.*;
 import cl.smartlogix.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -22,7 +22,6 @@ import java.util.*;
 @Transactional
 public class OrderServiceImpl implements OrderService {
 
-    private static final BigDecimal VAT = new BigDecimal("0.19");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     // Máquina de estados del pedido (no permite saltos arbitrarios)
@@ -37,6 +36,7 @@ public class OrderServiceImpl implements OrderService {
     );
 
     private final OrderRepository repository;
+    private final OrderFactoryProvider factoryProvider;
 
     @Override
     public OrderDto create(CreateOrderRequest req) {
@@ -44,37 +44,9 @@ public class OrderServiceImpl implements OrderService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El pedido debe tener al menos un ítem");
         }
 
-        Order order = Order.builder()
-            .code(generateCode())
-            .type(req.type() != null ? req.type() : OrderType.ESTANDAR)
-            .status(OrderStatus.PENDIENTE)
-            .customerId(req.customerId())
-            .marketplaceId(req.marketplaceId())
-            .build();
-
-        BigDecimal subtotal = BigDecimal.ZERO;
-        for (CreateOrderRequest.ItemRequest it : req.items()) {
-            BigDecimal sub = it.unitPrice().multiply(BigDecimal.valueOf(it.quantity()));
-            OrderItem item = OrderItem.builder()
-                .productId(it.productId())
-                .sku(it.sku())
-                .quantity(it.quantity())
-                .unitPrice(it.unitPrice())
-                .subtotal(sub)
-                .build();
-            order.addItem(item);
-            subtotal = subtotal.add(sub);
-        }
-        BigDecimal tax = subtotal.multiply(VAT).setScale(2, RoundingMode.HALF_UP);
-        order.setSubtotal(subtotal.setScale(2, RoundingMode.HALF_UP));
-        order.setTax(tax);
-        order.setTotal(subtotal.add(tax).setScale(2, RoundingMode.HALF_UP));
-
-        order.addHistory(OrderHistory.builder()
-            .previousStatus(null)
-            .newStatus(OrderStatus.PENDIENTE)
-            .reason("Pedido creado")
-            .build());
+        // Factory Method: el creador propio del tipo arma el agregado del pedido.
+        OrderFactory factory = factoryProvider.forType(req.type());
+        Order order = factory.build(req, generateCode());
 
         return OrderDto.from(repository.save(order));
     }

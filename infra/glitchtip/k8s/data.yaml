@@ -1,0 +1,93 @@
+# Capa de datos de GlitchTip: Postgres (StatefulSet con PVC) + Redis.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: glitchtip-db
+  namespace: glitchtip
+spec:
+  serviceName: glitchtip-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: glitchtip-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: glitchtip-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: glitchtip
+            - name: POSTGRES_USER
+              value: glitchtip
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: glitchtip-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U glitchtip"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: glitchtip-db
+  namespace: glitchtip
+spec:
+  selector:
+    app.kubernetes.io/name: glitchtip-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glitchtip-redis
+  namespace: glitchtip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: glitchtip-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: glitchtip-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: glitchtip-redis
+  namespace: glitchtip
+spec:
+  selector:
+    app.kubernetes.io/name: glitchtip-redis
+  ports:
+    - port: 6379
+      targetPort: 6379

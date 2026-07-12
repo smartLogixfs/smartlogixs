@@ -1,5 +1,8 @@
+import "./instrument.js"; // Sentry/GlitchTip: debe ir primero para instrumentar Express.
+
 import express from "express";
 import morgan from "morgan";
+import * as Sentry from "@sentry/node";
 
 import { env } from "./config/env.js";
 import healthRouter from "./routes/health.js";
@@ -8,6 +11,7 @@ import checkoutRouter from "./routes/checkout.js";
 import ordersRouter from "./routes/orders.js";
 import dashboardRouter from "./routes/dashboard.js";
 import inventoryRouter from "./routes/inventory.js";
+import demoRouter from "./routes/demo.js";
 import proxyRouter from "./routes/proxy.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
@@ -25,11 +29,16 @@ app.use(checkoutRouter);
 app.use(ordersRouter);
 app.use(dashboardRouter);
 app.use(inventoryRouter);
+app.use(demoRouter);
 
 // Passthrough genérico para CRUD simple de los MS.
 app.use(proxyRouter);
 
 app.use(notFound);
+
+// Captura de errores en GlitchTip (antes del handler propio). No-op si no hay DSN.
+Sentry.setupExpressErrorHandler(app);
+
 app.use(errorHandler);
 
 app.listen(env.PORT, "0.0.0.0", () => {
