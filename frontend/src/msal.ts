@@ -13,9 +13,15 @@ export async function initMsal(): Promise<void> {
   await msalInstance.initialize();
 
   // Procesa la respuesta cuando volvemos del login por redirect.
-  const result = await msalInstance.handleRedirectPromise();
-  if (result?.account) {
-    msalInstance.setActiveAccount(result.account);
+  // Si falla (p.ej. error AADSTS en la URL), lo registramos pero NO rompemos
+  // el arranque: la app debe renderizar igual (login o dashboard).
+  try {
+    const result = await msalInstance.handleRedirectPromise();
+    if (result?.account) {
+      msalInstance.setActiveAccount(result.account);
+    }
+  } catch (err) {
+    console.error('[MSAL] Error procesando el redirect de login:', err);
   }
 
   // Si ya había una sesión previa, activa la primera cuenta.

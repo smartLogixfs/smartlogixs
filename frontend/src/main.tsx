@@ -18,8 +18,7 @@ if (dsn) {
   });
 }
 
-// Inicializamos MSAL (y resolvemos el redirect de Entra) antes de renderizar.
-initMsal().then(() => {
+function renderApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <Sentry.ErrorBoundary fallback={<p>Ocurrió un error inesperado. Recarga la página.</p>}>
@@ -30,4 +29,10 @@ initMsal().then(() => {
       </Sentry.ErrorBoundary>
     </StrictMode>,
   );
-});
+}
+
+// Inicializamos MSAL (y resolvemos el redirect de Entra) y SIEMPRE renderizamos,
+// incluso si la inicialización falla, para no dejar la página en blanco.
+initMsal()
+  .catch((err) => console.error('[MSAL] initMsal falló:', err))
+  .finally(renderApp);

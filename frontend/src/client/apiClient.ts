@@ -30,10 +30,14 @@ async function getAccessToken(): Promise<string | null> {
     const result = await msalInstance.acquireTokenSilent({ ...apiRequest, account });
     return result.accessToken;
   } catch (err) {
+    // Ojo: NO disparamos acquireTokenRedirect aquí para evitar bucles de
+    // redirect (sobre todo mientras no hay backend). Registramos y devolvemos
+    // null; la petición fallará y la UI puede pedir re-login si hace falta.
     if (err instanceof InteractionRequiredAuthError) {
-      await msalInstance.acquireTokenRedirect(apiRequest);
+      console.warn('[MSAL] Se requiere interacción para el token de la API. Vuelve a iniciar sesión si es necesario.');
+    } else {
+      console.error('[MSAL] No se pudo adquirir el access token:', err);
     }
-    console.error('No se pudo adquirir el access token:', err);
     return null;
   }
 }
