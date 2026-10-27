@@ -78,14 +78,15 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
   // Map backend DTO -> frontend Shipment (hoisted as function declaration so can be used above)
   function mapDtoToShipment(d: ShipmentDto): Shipment {
     const mapEstado = (e: string): ShipmentStatus => {
-      if (!e) return 'Pendiente';
       switch (e) {
+        case 'LISTO_PARA_RETIRO': return 'Listo para retiro';
+        case 'RETIRADO': return 'Retirado';
+        case 'EN_TRANSITO': return 'En tránsito';
         case 'ENTREGADO': return 'Entregado';
-        case 'EN_RUTA': return 'En Tránsito';
-        case 'ASIGNADO': return 'Pendiente';
-        case 'CREADO': return 'Pendiente';
-        case 'INCIDENCIA': return 'Retrasado';
-        default: return 'Pendiente';
+        case 'PERDIDO': return 'Perdido';
+        case 'RETRASADO': return 'Retrasado';
+        case 'ENTREGA_FALLIDA': return 'Entrega fallida';
+        default: return 'Listo para retiro';
       }
     };
 
@@ -129,7 +130,7 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
       origin,
       destination,
       carrier,
-      status: 'Pendiente',
+      status: 'Listo para retiro',
       estimatedDelivery: estDeliveryDate.toISOString().substring(0, 10),
       itemsCount: Number(itemsCount),
       weight: Number(weight),
@@ -180,12 +181,14 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
     // Map to backend enum and call BFF
     const mapToEnum = (s: string) => {
       switch (s) {
+        case 'Listo para retiro': return 'LISTO_PARA_RETIRO';
+        case 'Retirado': return 'RETIRADO';
+        case 'En tránsito': return 'EN_TRANSITO';
         case 'Entregado': return 'ENTREGADO';
-        case 'En Tránsito': return 'EN_RUTA';
-        case 'Retrasado': return 'INCIDENCIA';
-        case 'Pendiente':
-        default:
-          return 'CREADO';
+        case 'Perdido': return 'PERDIDO';
+        case 'Retrasado': return 'RETRASADO';
+        case 'Entrega fallida': return 'ENTREGA_FALLIDA';
+        default: return 'LISTO_PARA_RETIRO';
       }
     };
 
@@ -409,10 +412,13 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
               className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold outline-none bg-white cursor-pointer"
             >
               <option value="Todos">Todos</option>
-              <option value="En Tránsito">En Tránsito</option>
+              <option value="Listo para retiro">Listo para retiro</option>
+              <option value="Retirado">Retirado</option>
+              <option value="En tránsito">En tránsito</option>
               <option value="Entregado">Entregado</option>
-              <option value="Pendiente">Pendiente</option>
               <option value="Retrasado">Retrasado</option>
+              <option value="Entrega fallida">Entrega fallida</option>
+              <option value="Perdido">Perdido</option>
             </select>
           </div>
 
@@ -469,12 +475,18 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
                   let badge = 'bg-slate-100 text-slate-600 border-slate-200';
                   if (s.status === 'Entregado') {
                     badge = 'bg-emerald-50 text-emerald-800 border-emerald-100';
-                  } else if (s.status === 'En Tránsito') {
+                  } else if (s.status === 'En tránsito') {
                     badge = 'bg-blue-50 text-blue-800 border-blue-100';
-                  } else if (s.status === 'Pendiente') {
+                  } else if (s.status === 'Retirado') {
+                    badge = 'bg-indigo-50 text-indigo-800 border-indigo-100';
+                  } else if (s.status === 'Listo para retiro') {
                     badge = 'bg-amber-50 text-amber-800 border-amber-100';
                   } else if (s.status === 'Retrasado') {
+                    badge = 'bg-orange-50 text-orange-800 border-orange-100';
+                  } else if (s.status === 'Entrega fallida') {
                     badge = 'bg-rose-50 text-rose-800 border-rose-100';
+                  } else if (s.status === 'Perdido') {
+                    badge = 'bg-red-100 text-red-800 border-red-200';
                   }
 
                   let priorityText = 'bg-slate-50 text-slate-500 border-slate-100';
@@ -613,7 +625,7 @@ export default function ShipmentTable({ shipments, onAddShipment, onUpdateShipme
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold tracking-widest text-[#7c839b] uppercase block">Actualizar Estado de Entrega</label>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {['En Tránsito', 'Entregado', 'Pendiente', 'Retrasado'].map((statusOption) => (
+                    {['Retirado', 'En tránsito', 'Entregado', 'Retrasado', 'Entrega fallida', 'Perdido'].map((statusOption) => (
                       <button
                         key={statusOption}
                         onClick={() => handleUpdateStatusLocal(statusOption as ShipmentStatus)}

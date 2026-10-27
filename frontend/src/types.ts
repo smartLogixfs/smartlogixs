@@ -10,7 +10,14 @@ export type ProductCategory =
 
 export type ProductStatus = 'Disponible' | 'Bajo Stock' | 'Agotado';
 
-export type ShipmentStatus = 'Entregado' | 'En Tránsito' | 'Pendiente' | 'Retrasado';
+export type ShipmentStatus =
+  | 'Listo para retiro'
+  | 'Retirado'
+  | 'En tránsito'
+  | 'Entregado'
+  | 'Perdido'
+  | 'Retrasado'
+  | 'Entrega fallida';
 
 export type ShipmentPriority = 'Alta' | 'Media' | 'Baja';
 
@@ -22,11 +29,13 @@ export type LogType =
 
 /** Estados de envío tal como los expone el backend (ms-shipping). */
 export type BackendShipmentState =
-  | 'CREADO'
-  | 'ASIGNADO'
-  | 'EN_RUTA'
+  | 'LISTO_PARA_RETIRO'
+  | 'RETIRADO'
+  | 'EN_TRANSITO'
   | 'ENTREGADO'
-  | 'INCIDENCIA';
+  | 'PERDIDO'
+  | 'RETRASADO'
+  | 'ENTREGA_FALLIDA';
 
 // ============================================================
 // Modelos de dominio (frontend)

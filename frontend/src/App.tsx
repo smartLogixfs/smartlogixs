@@ -38,14 +38,15 @@ export default function App() {
   const [logs, setLogs] = useState<LogisticsLog[]>(INITIAL_LOGS);
 
   const mapEstado = (e: string): ShipmentStatus => {
-    if (!e) return 'Pendiente';
     switch (e) {
+      case 'LISTO_PARA_RETIRO': return 'Listo para retiro';
+      case 'RETIRADO': return 'Retirado';
+      case 'EN_TRANSITO': return 'En tránsito';
       case 'ENTREGADO': return 'Entregado';
-      case 'EN_RUTA': return 'En Tránsito';
-      case 'ASIGNADO': return 'Pendiente';
-      case 'CREADO': return 'Pendiente';
-      case 'INCIDENCIA': return 'Retrasado';
-      default: return 'Pendiente';
+      case 'PERDIDO': return 'Perdido';
+      case 'RETRASADO': return 'Retrasado';
+      case 'ENTREGA_FALLIDA': return 'Entrega fallida';
+      default: return 'Listo para retiro';
     }
   };
 
