@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import {
-  UserProfile,
   Product,
   Shipment,
   LogisticsLog,
@@ -9,23 +9,27 @@ import {
   ShipmentStatus,
   LogType,
 } from './types';
-import Login from './pages/Login';
+import LoginMsal from './pages/LoginMsal';
 import Sidebar from './components/Sidebar';
 import DashboardHome from './pages/DashboardHome';
 import WarehouseGrid from './pages/WarehouseGrid';
 import ShipmentTable from './pages/ShipmentTable';
 import AIHub from './pages/AIHub';
 import { INITIAL_LOGS } from './data/mockData';
-import {
-  api,
-  getStoredToken,
-  getUserProfileFromToken,
-  removeStoredToken,
-  getErrorMessage,
-} from './client/apiClient';
+import { api, getErrorMessage } from './client/apiClient';
+import { toUserProfile } from './auth/claims';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const { instance } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
+  const activeAccount = instance.getActiveAccount();
+
+  // El usuario se deriva de los claims del token de Entra (roles incluidos).
+  const currentUser = useMemo(
+    () => (isAuthenticated ? toUserProfile(activeAccount) : null),
+    [isAuthenticated, activeAccount]
+  );
+
   const [currentTab, setCurrentTab] = useState<'overview' | 'warehouse' | 'shipments' | 'ai-hub'>('overview');
 
   // Operational states
@@ -34,14 +38,15 @@ export default function App() {
   const [logs, setLogs] = useState<LogisticsLog[]>(INITIAL_LOGS);
 
   const mapEstado = (e: string): ShipmentStatus => {
-    if (!e) return 'Pendiente';
     switch (e) {
+      case 'LISTO_PARA_RETIRO': return 'Listo para retiro';
+      case 'RETIRADO': return 'Retirado';
+      case 'EN_TRANSITO': return 'En tránsito';
       case 'ENTREGADO': return 'Entregado';
-      case 'EN_RUTA': return 'En Tránsito';
-      case 'ASIGNADO': return 'Pendiente';
-      case 'CREADO': return 'Pendiente';
-      case 'INCIDENCIA': return 'Retrasado';
-      default: return 'Pendiente';
+      case 'PERDIDO': return 'Perdido';
+      case 'RETRASADO': return 'Retrasado';
+      case 'ENTREGA_FALLIDA': return 'Entrega fallida';
+      default: return 'Listo para retiro';
     }
   };
 
@@ -84,34 +89,20 @@ export default function App() {
     }
   };
 
-  // Restore session on mount
+  // Al autenticarse: cargar datos y registrar el acceso.
   useEffect(() => {
-    const token = getStoredToken();
-    if (token) {
-      const user = getUserProfileFromToken(token);
-      if (user) {
-        setCurrentUser(user);
-        loadData();
-      } else {
-        removeStoredToken();
-      }
+    if (isAuthenticated && currentUser) {
+      loadData();
+      appendLog('security_event', `Acceso exitoso al panel de control por el usuario ${currentUser.email}.`, currentUser.name);
     }
-  }, []);
-
-  // Core functions
-  const handleLoginSuccess = (user: UserProfile) => {
-    setCurrentUser(user);
-    loadData();
-    appendLog('security_event', `Acceso exitoso al panel de control por el usuario ${user.email}.`, user.name);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     if (currentUser) {
       appendLog('security_event', `Sesión finalizada de forma segura por ${currentUser.name}.`, 'Sistema');
     }
-    removeStoredToken();
-    setCurrentUser(null);
-    setCurrentTab('overview');
+    instance.logoutRedirect({ postLogoutRedirectUri: '/' }).catch((e) => console.error(e));
   };
 
   const appendLog = (type: LogType, message: string, operator: string) => {
@@ -153,11 +144,11 @@ export default function App() {
     try {
       const warehouseId = getWarehouseId(p.location);
       await api.adjustProductStock(p.id, warehouseId, delta, delta > 0 ? 'ENTRADA' : 'SALIDA');
-      
+
       const nextStatus = newQty <= 0 ? 'Agotado' : newQty <= p.minStock ? 'Bajo Stock' : 'Disponible';
       let logMsg = `Lote ${p.sku} stock modificado de ${p.quantity}u. a ${newQty}u. Ubicación: ${p.location}.`;
       if (nextStatus === 'Bajo Stock') logMsg += ' [ALERTA BAJO STOCK]';
-      
+
       appendLog(nextStatus === 'Bajo Stock' ? 'inventory_alert' : 'system_info', logMsg, currentUser?.name || 'Operador');
 
       setProducts(prev => prev.map(item => {
@@ -215,36 +206,36 @@ export default function App() {
 
   return (
     <div className="w-full min-h-screen text-[#0b1c30]">
-      
-      {/* Visual rendering condition */}
-      {currentUser === null ? (
-        <Login onLoginSuccess={handleLoginSuccess} />
+
+      {/* Guardia de autenticación: sin sesión → pantalla de login MSAL */}
+      {!isAuthenticated || !currentUser ? (
+        <LoginMsal />
       ) : (
         <div className="flex w-full min-h-screen bg-slate-50">
-          
+
           {/* Main lateral fixed navigation panel */}
-          <Sidebar 
-            currentTab={currentTab} 
-            setCurrentTab={setCurrentTab} 
-            user={currentUser} 
-            onLogout={handleLogout} 
+          <Sidebar
+            currentTab={currentTab}
+            setCurrentTab={setCurrentTab}
+            user={currentUser}
+            onLogout={handleLogout}
           />
 
           {/* Main Workspace Frame container */}
           <main className="flex-1 p-6 md:p-8 xl:p-10 max-w-7xl mx-auto overflow-y-auto space-y-6">
-            
+
             {/* View modules */}
             {currentTab === 'overview' && (
-              <DashboardHome 
-                user={currentUser} 
-                shipments={shipments} 
-                logs={logs} 
-                onNavigateToTab={handleNavigateToTab} 
+              <DashboardHome
+                user={currentUser}
+                shipments={shipments}
+                logs={logs}
+                onNavigateToTab={handleNavigateToTab}
               />
             )}
 
             {currentTab === 'warehouse' && (
-              <WarehouseGrid 
+              <WarehouseGrid
                 products={products}
                 onAddProduct={handleAddProduct}
                 onUpdateProductStock={handleUpdateProductStock}
@@ -253,7 +244,7 @@ export default function App() {
             )}
 
             {currentTab === 'shipments' && (
-              <ShipmentTable 
+              <ShipmentTable
                 shipments={shipments}
                 onAddShipment={handleAddShipment}
                 onUpdateShipmentStatus={handleUpdateShipmentStatus}
@@ -261,7 +252,7 @@ export default function App() {
             )}
 
             {currentTab === 'ai-hub' && (
-              <AIHub 
+              <AIHub
                 shipments={shipments}
                 products={products}
                 onLogMessage={(type, msg) => appendLog(type, msg, 'Logix-AI Scout')}

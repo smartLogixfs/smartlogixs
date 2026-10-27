@@ -22,7 +22,7 @@ interface DashboardHomeProps {
 export default function DashboardHome({ user, shipments, logs, onNavigateToTab }: DashboardHomeProps) {
   // Stats calculations
   const totalShipments = shipments.length;
-  const transitCount = shipments.filter(s => s.status === 'En Tránsito').length;
+  const transitCount = shipments.filter(s => s.status === 'En tránsito').length;
   const delayedCount = shipments.filter(s => s.status === 'Retrasado').length;
   
   // Calculate aggregate weight in metric tons

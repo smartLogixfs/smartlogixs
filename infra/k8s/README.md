@@ -29,8 +29,8 @@ infra/k8s/
 │   ├── configmap.yaml          # vars de entorno comunes (URLs internas, DB names)
 │   ├── secret.example.yaml     # template (sin credenciales reales)
 │   └── kustomization.yaml
-├── ingress-traefik.yaml        # ingress Traefik (por defecto): IngressRoute + Middlewares
-├── ingress.yaml                # ingress-nginx (alternativa)
+├── ingress-traefik.yaml        # ingress Traefik: IngressRoute + Middlewares
+├── traefik-values.yaml         # values del controller Traefik (helm)
 ├── kustomization.yaml          # orquestador raíz con bloque images: (newTag por servicio)
 └── README.md
 
@@ -43,7 +43,7 @@ backend/
 ├── bff/k8s/            # Deployment + Service (sin DB)
 └── api-gateway/k8s/    # Deployment + Service (el ConfigMap de krakend.json se genera en backend/api-gateway/)
 
-frontend/k8s/           # Deployment + Service (Nginx con bundle Vite)
+frontend/k8s/           # Deployment + Service (sirve el bundle Vite estático)
 ```
 
 Cada carpeta `k8s/` por servicio tiene su propio `kustomization.yaml`, por lo que se puede desplegar de forma aislada (útil para CI/CD o para reiniciar 1 solo MS).
@@ -52,12 +52,12 @@ Cada carpeta `k8s/` por servicio tiene su propio `kustomization.yaml`, por lo qu
 
 - Un cluster k8s funcional (Docker Desktop k8s, Minikube, Kind, k3d, EKS, GKE...).
 - `kubectl` con contexto apuntando al cluster.
-- Un Ingress Controller. Por defecto se usa **Traefik** (aporta los CRDs IngressRoute/Middleware):
+- El Ingress Controller **Traefik** (aporta los CRDs IngressRoute/Middleware):
   ```bash
   helm repo add traefik https://traefik.github.io/charts
-  helm install traefik traefik/traefik -n traefik --create-namespace
+  helm install traefik traefik/traefik -n traefik --create-namespace \
+    -f infra/k8s/traefik-values.yaml
   ```
-  Alternativa nginx: cambiar el recurso `ingress-traefik.yaml` por `ingress.yaml` en `infra/k8s/kustomization.yaml`.
 - Llaves RSA (`private_key.pem` y `public_key.pem`) en el directorio raíz del repo para `ms-auth`.
 
 ## 3. Build de imágenes

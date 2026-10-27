@@ -1,6 +1,6 @@
 # API Gateway — KrakenD
 
-> Gateway declarativo que enruta `/api/*` hacia el BFF, valida JWT RS256 por endpoint con scopes, y aplica CORS. Vive **detrás** del Ingress (Traefik en compose / nginx-ingress en k8s).
+> Gateway declarativo que enruta `/api/*` hacia el BFF, valida JWT RS256 por endpoint con scopes, y aplica CORS. Vive **detrás** del Ingress (Traefik en compose y k8s).
 
 ← Volver a [README raíz del monorepo](../../README.md) · Otros componentes: [BFF](../bff/README.md) · [ms-order](../ms-order/README.md) · [ms-inventory](../ms-inventory/README.md) · [ms-shipping](../ms-shipping/README.md) · [ms-user](../ms-user/README.md) · [ms-auth](../ms-auth/README.md)
 
@@ -48,7 +48,7 @@ flowchart LR
 
     Internet --> Ingress
     subgraph Edge["Ingress"]
-        Ingress["Traefik (compose) /<br/>nginx-ingress (k8s)<br/>routing por host + path"]
+        Ingress["Traefik (compose y k8s)<br/>routing por host + path"]
     end
 
     Ingress -->|"/"| FE[Frontend]
@@ -64,7 +64,7 @@ flowchart LR
 
 ### ¿Por qué Ingress + API Gateway separados?
 
-| Capa | Ingress (Traefik / nginx) | KrakenD (API Gateway) |
+| Capa | Ingress (Traefik) | KrakenD (API Gateway) |
 |---|---|---|
 | Granularidad | Plataforma completa | Solo `/api/*` |
 | Responsabilidad | TLS termination, routing por host/path, frontend estático | Policies de API: JWT con scopes, CORS específico, transformación |

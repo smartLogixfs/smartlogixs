@@ -9,11 +9,9 @@
 #   - Traefik instalado en el cluster (provee los CRDs traefik.io/v1alpha1 y el
 #     IngressClass 'traefik'). Ej.:
 #       helm repo add traefik https://traefik.github.io/charts
-#       helm install traefik traefik/traefik -n traefik --create-namespace
+#       helm install traefik traefik/traefik -n traefik --create-namespace \
+#         -f infra/k8s/traefik-values.yaml
 #   - El entryPoint 'web' (:80) es el de un install estandar de Traefik.
-#
-# Alternativa: `infra/k8s/ingress.yaml` (nginx-ingress). Usar SOLO UNO de los dos
-# (el kustomization raiz referencia este por defecto).
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

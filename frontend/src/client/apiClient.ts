@@ -1,26 +1,14 @@
 import {
   Product,
-  UserProfile,
-  AuthResponse,
-  JwtPayload,
   ShipmentDto,
   CreateShipmentPayload,
   UpdateShipmentStatusPayload,
 } from '../types';
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
+import { msalInstance } from '../msal';
+import { apiRequest } from '../authConfig';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
-
-export function getStoredToken(): string | null {
-  return localStorage.getItem('token');
-}
-
-export function setStoredToken(token: string) {
-  localStorage.setItem('token', token);
-}
-
-export function removeStoredToken() {
-  localStorage.removeItem('token');
-}
 
 /** Extrae un mensaje legible de cualquier valor capturado en un catch. */
 export function getErrorMessage(err: unknown): string {
@@ -29,32 +17,29 @@ export function getErrorMessage(err: unknown): string {
   return 'Error inesperado';
 }
 
-export function parseJwt(token: string): JwtPayload | null {
+/**
+ * Obtiene un access token de Entra para llamar a NUESTRA API (scope access_as_user).
+ * Actúa como "interceptor": adjunta el Bearer en cada petición del apiClient.
+ * Si el token silencioso falla por interacción requerida, dispara login por redirect.
+ */
+async function getAccessToken(): Promise<string | null> {
+  const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  if (!account) return null;
+
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload) as JwtPayload;
-  } catch {
+    const result = await msalInstance.acquireTokenSilent({ ...apiRequest, account });
+    return result.accessToken;
+  } catch (err) {
+    // Ojo: NO disparamos acquireTokenRedirect aquí para evitar bucles de
+    // redirect (sobre todo mientras no hay backend). Registramos y devolvemos
+    // null; la petición fallará y la UI puede pedir re-login si hace falta.
+    if (err instanceof InteractionRequiredAuthError) {
+      console.warn('[MSAL] Se requiere interacción para el token de la API. Vuelve a iniciar sesión si es necesario.');
+    } else {
+      console.error('[MSAL] No se pudo adquirir el access token:', err);
+    }
     return null;
   }
-}
-
-export function getUserProfileFromToken(token: string): UserProfile | null {
-  const payload = parseJwt(token);
-  if (!payload) return null;
-  return {
-    name: payload.name || 'Usuario',
-    email: payload.sub || payload.email || '',
-    company: 'SmartLogix Partner',
-    role: payload.role || 'USER',
-  };
 }
 
 interface ApiErrorBody {
@@ -63,7 +48,7 @@ interface ApiErrorBody {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getStoredToken();
+  const token = await getAccessToken();
   const headers = new Headers(options.headers || {});
 
   if (token) {
@@ -73,18 +58,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (!response.ok) {
     let errorDetail = 'Error en la petición';
+    if (response.status === 401) errorDetail = 'No autenticado (401). Vuelve a iniciar sesión.';
+    else if (response.status === 403) errorDetail = 'No autorizado (403). No tienes el rol requerido.';
     try {
       const errBody = (await response.json()) as ApiErrorBody;
       errorDetail = errBody.detail || errBody.message || errorDetail;
     } catch {
-      // ignore
+      // ignore: cuerpo no-JSON
     }
     throw new Error(errorDetail);
   }
@@ -94,24 +78,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await request<AuthResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    if (response?.accessToken) {
-      setStoredToken(response.accessToken);
-    }
-    return response;
-  },
-
-  async register(name: string, email: string, password: string): Promise<void> {
-    await request<void>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    });
-  },
-
   async getProducts(): Promise<Product[]> {
     return request<Product[]>('/inventory/products-with-stock');
   },
